@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Крокодил и Бункер Онлайн</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 16px 16px 90px; color: #222; }
+  .card { background: white; padding: 20px; border-radius: 10px; max-width: 560px; margin: 0 auto; box-shadow: 0 2px 10px rgba(0,0,0,.1); }
+  input, button, select { width: 100%; padding: 10px; margin: 6px 0; font-size: 16px; }
+  button { background: #4285F4; color: white; border: none; border-radius: 6px; cursor: pointer; }
+  button:hover { background: #357ae8; }
+  button:disabled { background: #b8c4d6; cursor: default; }
+  button.green { background: #34A853; } button.red { background: #EA4335; } button.gray { background: #6b7280; }
+  button.small { width: auto; padding: 6px 12px; font-size: 14px; margin: 4px 4px 4px 0; }
+  .hidden { display: none !important; }
+  .player-item { padding: 6px 4px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; gap: 8px; }
+  #win-btn { position: fixed; top: 10px; right: 10px; width: auto; background: #34A853; z-index: 100; }
+  .game-pick { display: flex; gap: 10px; }
+  .game-pick button { padding: 26px 10px; font-size: 18px; line-height: 1.3; }
+  .game-pick small { display: block; font-size: 13px; opacity: .85; margin-top: 6px; }
+  #bar { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid #ddd; padding: 8px 12px; display: flex; gap: 10px; z-index: 150; }
+  #bar button { margin: 0; position: relative; }
+  .badge { background: #EA4335; border-radius: 10px; padding: 1px 7px; font-size: 12px; margin-left: 6px; }
+  #sheet { position: fixed; left: 0; right: 0; bottom: 0; top: 12%; background: #fff; border-radius: 16px 16px 0 0; box-shadow: 0 -4px 20px rgba(0,0,0,.25); z-index: 200; display: flex; flex-direction: column; max-width: 600px; margin: 0 auto; }
+  #sheet-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #eee; }
+  #sheet-head button { width: auto; margin: 0; padding: 6px 12px; background: #6b7280; }
+  .sheet-body { flex: 1; overflow-y: auto; padding: 12px 16px; }
+  #sheet-chat { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  #chat-msgs { flex: 1; overflow-y: auto; padding: 12px 16px; }
+  #chat-form { display: flex; gap: 8px; padding: 8px 12px 14px; border-top: 1px solid #eee; }
+  #chat-form input { margin: 0; } #chat-form button { width: 90px; margin: 0; }
+  .msg { margin: 6px 0; } .msg b { color: #4285F4; } .msg.me b { color: #34A853; } .msg i { color: #999; font-size: 11px; margin-left: 6px; font-style: normal; }
+  .box { border: 1px solid #e3e6ea; border-radius: 8px; padding: 10px; margin: 10px 0; background: #fafbfc; }
+  .box h4 { margin: 0 0 6px; }
+  .tag { display: inline-block; background: #fff3cd; border: 1px solid #f0d98a; border-radius: 6px; padding: 3px 8px; font-size: 13px; margin: 3px 3px 0 0; }
+  .tag.bad { background: #fde2e0; border-color: #f2b3ae; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .bcard { border: 2px solid #d8dde3; border-radius: 8px; padding: 8px; font-size: 14px; background: #fff; cursor: pointer; }
+  .bcard small { display: block; color: #888; font-size: 11px; text-transform: uppercase; margin-bottom: 3px; }
+  .bcard.open { background: #e6f4ea; border-color: #34A853; cursor: default; }
+  .bcard.sel { border-color: #4285F4; box-shadow: 0 0 0 2px #cfe0ff; }
+  .dead { opacity: .6; } .dead .name { text-decoration: line-through; }
+  .status { background: #eef3ff; border-radius: 8px; padding: 10px; margin: 10px 0; font-weight: bold; }
+  .rc { display: flex; justify-content: space-between; gap: 6px; align-items: center; }
+</style>
+</head>
+<body>
+
+<button id="win-btn" class="hidden" onclick="declareWin()">🏆 Я выиграл!</button>
+
+<div class="card" id="app">
+  <!-- Авторизация -->
+  <div id="screen-auth">
+    <h2>Вход</h2>
+    <button onclick="loginWithGoogle()">Войти через Google</button>
+  </div>
+
+  <!-- Профиль -->
+  <div id="screen-profile" class="hidden">
+    <h2>Введите имя в профиле</h2>
+    <input type="text" id="profile-name" placeholder="Ваше имя">
+    <button onclick="saveProfile()">Сохранить</button>
+  </div>
+
+  <!-- Выбор игры -->
+  <div id="screen-select" class="hidden">
+    <h2>Выберите игру</h2>
+    <p>Привет, <span id="display-user-name"></span>!</p>
+    <div class="game-pick">
+      <button onclick="selectGame('crocodile')">🐊 Крокодил<small>угадай своё слово</small></button>
+      <button class="green" onclick="selectGame('bunker')">☢️ Бункер<small>выживут не все</small></button>
+    </div>
+  </div>
+
+  <!-- Меню игры -->
+  <div id="screen-menu" class="hidden">
+    <h2 id="menu-title">Главное меню</h2>
+    <button onclick="createRoomModal()">Создать комнату</button>
+    <hr>
+    <input type="text" id="join-code" placeholder="Код комнаты">
+    <button onclick="joinRoom()">Войти в комнату</button>
+    <button class="gray" onclick="showScreen('screen-select')">← Выбрать другую игру</button>
+  </div>
+
+  <!-- Комната ожидания -->
+  <div id="screen-room" class="hidden">
+    <h2 id="room-title"></h2>
+    <p>Код комнаты: <strong id="room-code-display"></strong></p>
+    <h3>Игроки (макс. 10):</h3>
+    <div id="players-list"></div>
+    <button id="start-game-btn" class="hidden" onclick="startGame()">Начать игру (нужно мин. 3)</button>
+    <button class="gray" onclick="leaveToMenu()">Выйти в меню</button>
+  </div>
+
+  <!-- Крокодил: ввод слов -->
+  <div id="screen-word-input" class="hidden">
+    <h2>Фаза ввода слов</h2>
+    <p>Тема комнаты: <strong id="input-theme"></strong></p>
+    <p>Введите слово, связанное с темой, которое отгадают другие:</p>
+    <input type="text" id="secret-word-input" placeholder="Ваше слово">
+    <button onclick="submitWord()">Отправить слово</button>
+  </div>
+
+  <!-- Крокодил: игра -->
+  <div id="screen-game" class="hidden">
+    <h2>Идет игра! 🐊</h2>
+    <p>Ход игрока: <strong id="current-turn-name"></strong></p>
+    <div id="game-players-list"></div>
+    <div id="turn-controls" class="hidden" style="margin-top:20px;border-top:2px solid #ccc;padding-top:10px;">
+      <p>Ваша очередь управлять вопросом:</p>
+      <button class="green" onclick="handleGuessResult(true)">Угадал (+ ход)</button>
+      <button class="red" onclick="handleGuessResult(false)">Не угадал (переход хода)</button>
+    </div>
+  </div>
+
+  <!-- Бункер -->
+  <div id="screen-bunker" class="hidden">
+    <h2>☢️ Бункер — раунд <span id="b-round"></span></h2>
+    <div class="box" id="b-world"></div>
+    <div class="status" id="b-status"></div>
+    <div id="b-vote" class="hidden"></div>
+    <div id="b-me"></div>
+    <div id="b-end" class="hidden"></div>
+  </div>
+</div>
+
+<!-- Нижняя панель: игроки / чат -->
+<div id="bar" class="hidden">
+  <button onclick="openSheet('players')">👥 Игроки</button>
+  <button onclick="openSheet('chat')">💬 Чат<span id="chat-badge" class="badge hidden">0</span></button>
+</div>
+
+<div id="sheet" class="hidden">
+  <div id="sheet-head"><b id="sheet-title"></b><button onclick="closeSheet()">✕</button></div>
+  <div id="sheet-players" class="sheet-body hidden"></div>
+  <div id="sheet-chat" class="hidden">
+    <div id="chat-msgs"></div>
+    <div id="chat-form">
+      <input type="text" id="chat-input" placeholder="Сообщение..." maxlength="300" onkeydown="if(event.key==='Enter')sendChat()">
+      <button onclick="sendChat()">Отправить</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, query, where, getDocs, deleteDoc, arrayUnion, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCyie8i7cKOmnTS68p_hyakIqVNVOReKhY",
+  authDomain: "krokodil-c57ad.firebaseapp.com",
+  projectId: "krokodil-c57ad",
+  storageBucket: "krokodil-c57ad.firebasestorage.app",
+  messagingSenderId: "111274788107",
+  appId: "1:111274788107:web:557e5aa01ec60191b98e0e"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const bunkerData = {"meta":{"title":"Бункер — база данных","version":"1.0.0","language":"ru","description":"Игровые карты для настольной игры «Бункер». Количество карт соответствует запросу и приложенному примеру."},"professions":[{"id":"prof_01","text":"Врач-терапевт"},{"id":"prof_02","text":"Хирург"},{"id":"prof_03","text":"Инженер-строитель"},{"id":"prof_04","text":"Электрик"},{"id":"prof_05","text":"Сантехник"},{"id":"prof_06","text":"Повар"},{"id":"prof_07","text":"Фермер"},{"id":"prof_08","text":"Агроном"},{"id":"prof_09","text":"Биолог"},{"id":"prof_10","text":"Микробиолог"},{"id":"prof_11","text":"Химик"},{"id":"prof_12","text":"Физик"},{"id":"prof_13","text":"Геолог"},{"id":"prof_14","text":"Сейсмолог"},{"id":"prof_15","text":"Метеоролог"},{"id":"prof_16","text":"Программист"},{"id":"prof_17","text":"Системный администратор"},{"id":"prof_18","text":"Учитель"},{"id":"prof_19","text":"Психолог"},{"id":"prof_20","text":"Ветеринар"},{"id":"prof_21","text":"Пожарный"},{"id":"prof_22","text":"Спасатель"},{"id":"prof_23","text":"Военнослужащий"},{"id":"prof_24","text":"Полицейский"},{"id":"prof_25","text":"Телохранитель"},{"id":"prof_26","text":"Адвокат"},{"id":"prof_27","text":"Судья"},{"id":"prof_28","text":"Журналист"},{"id":"prof_29","text":"Фотограф"},{"id":"prof_30","text":"Актёр"},{"id":"prof_31","text":"Музыкант"},{"id":"prof_32","text":"Художник"},{"id":"prof_33","text":"Механик"},{"id":"prof_34","text":"Автомеханик"},{"id":"prof_35","text":"Радиотехник"},{"id":"prof_36","text":"Радист"},{"id":"prof_37","text":"Пилот"},{"id":"prof_38","text":"Моряк"},{"id":"prof_39","text":"Водитель-дальнобойщик"},{"id":"prof_40","text":"Плотник"},{"id":"prof_41","text":"Сварщик"},{"id":"prof_42","text":"Швея"},{"id":"prof_43","text":"Парикмахер"},{"id":"prof_44","text":"Стоматолог"},{"id":"prof_45","text":"Фармацевт"},{"id":"prof_46","text":"Палеонтолог"},{"id":"prof_47","text":"Археолог"},{"id":"prof_48","text":"Экономист"},{"id":"prof_49","text":"Логист"},{"id":"prof_50","text":"Пчеловод"}],"facts":[{"id":"fact_01","text":"Умеет читать азбуку Морзе."},{"id":"fact_02","text":"В детстве жил(а) в деревне."},{"id":"fact_03","text":"Однажды провёл(а) неделю без электричества."},{"id":"fact_04","text":"Знает три иностранных языка."},{"id":"fact_05","text":"Никогда не пользовался(ась) смартфоном."},{"id":"fact_06","text":"Однажды выиграл(а) городской конкурс."},{"id":"fact_07","text":"Умеет ориентироваться по звёздам."},{"id":"fact_08","text":"Коллекционирует старые карты."},{"id":"fact_09","text":"Может починить механические часы."},{"id":"fact_10","text":"Однажды пережил(а) кораблекрушение."},{"id":"fact_11","text":"Знает основы первой помощи."},{"id":"fact_12","text":"Боится замкнутых помещений, но скрывает это."},{"id":"fact_13","text":"Умеет быстро считать в уме."},{"id":"fact_14","text":"Когда-то работал(а) на полярной станции."},{"id":"fact_15","text":"Имеет отличную память на лица."},{"id":"fact_16","text":"Умеет разводить огонь без спичек."},{"id":"fact_17","text":"Однажды заблудился(ась) в лесу на три дня."},{"id":"fact_18","text":"Знает основы радиосвязи."},{"id":"fact_19","text":"Может определить стороны света по природным признакам."},{"id":"fact_20","text":"Всю жизнь прожил(а) в большом городе."},{"id":"fact_21","text":"Умеет шить одежду вручную."},{"id":"fact_22","text":"Имеет опыт длительного похода."},{"id":"fact_23","text":"Когда-то выступал(а) на большой сцене."},{"id":"fact_24","text":"Знает несколько способов очистки воды."},{"id":"fact_25","text":"Однажды спас(ла) человека."},{"id":"fact_26","text":"Не умеет плавать."},{"id":"fact_27","text":"Умеет играть на музыкальном инструменте."},{"id":"fact_28","text":"Разбирается в съедобных дикорастущих растениях."},{"id":"fact_29","text":"Имеет водительские права пяти категорий."},{"id":"fact_30","text":"Может задерживать дыхание более двух минут."},{"id":"fact_31","text":"Однажды провёл(а) месяц в одиночестве."},{"id":"fact_32","text":"Знает основы консервирования продуктов."},{"id":"fact_33","text":"Умеет ухаживать за домашним скотом."},{"id":"fact_34","text":"В прошлом участвовал(а) в научной экспедиции."},{"id":"fact_35","text":"Умеет быстро запоминать маршруты."},{"id":"fact_36","text":"Имеет опыт жизни в палатке зимой."},{"id":"fact_37","text":"Знает, как пользоваться огнетушителем."},{"id":"fact_38","text":"Однажды оказался(ась) в эпицентре сильного землетрясения."},{"id":"fact_39","text":"Может починить велосипед."},{"id":"fact_40","text":"Умеет вести переговоры в конфликтной ситуации."},{"id":"fact_41","text":"Имеет навыки ручной обработки дерева."},{"id":"fact_42","text":"Знает основы выращивания грибов."},{"id":"fact_43","text":"Умеет распознавать несколько видов ядовитых растений."},{"id":"fact_44","text":"Никогда не летал(а) на самолёте."},{"id":"fact_45","text":"Имеет опыт ухода за маленькими детьми."},{"id":"fact_46","text":"Умеет экономно распределять запасы."},{"id":"fact_47","text":"Однажды участвовал(а) в волонтёрской спасательной операции."},{"id":"fact_48","text":"Может приготовить еду без рецепта."},{"id":"fact_49","text":"Знает устройство простого двигателя."},{"id":"fact_50","text":"Сохраняет спокойствие в чрезвычайных ситуациях."}],"biological_characteristics":[{"id":"bio_01","sex":"Мужчина","age":18},{"id":"bio_02","sex":"Женщина","age":19},{"id":"bio_03","sex":"Мужчина","age":20},{"id":"bio_04","sex":"Женщина","age":21},{"id":"bio_05","sex":"Мужчина","age":22},{"id":"bio_06","sex":"Женщина","age":23},{"id":"bio_07","sex":"Мужчина","age":24},{"id":"bio_08","sex":"Женщина","age":25},{"id":"bio_09","sex":"Мужчина","age":26},{"id":"bio_10","sex":"Женщина","age":27},{"id":"bio_11","sex":"Мужчина","age":28},{"id":"bio_12","sex":"Женщина","age":29},{"id":"bio_13","sex":"Мужчина","age":30},{"id":"bio_14","sex":"Женщина","age":31},{"id":"bio_15","sex":"Мужчина","age":32},{"id":"bio_16","sex":"Женщина","age":33},{"id":"bio_17","sex":"Мужчина","age":34},{"id":"bio_18","sex":"Женщина","age":35},{"id":"bio_19","sex":"Мужчина","age":36},{"id":"bio_20","sex":"Женщина","age":37},{"id":"bio_21","sex":"Мужчина","age":38},{"id":"bio_22","sex":"Женщина","age":39},{"id":"bio_23","sex":"Мужчина","age":40},{"id":"bio_24","sex":"Женщина","age":41},{"id":"bio_25","sex":"Мужчина","age":42},{"id":"bio_26","sex":"Женщина","age":44},{"id":"bio_27","sex":"Мужчина","age":46},{"id":"bio_28","sex":"Женщина","age":48},{"id":"bio_29","sex":"Мужчина","age":52},{"id":"bio_30","sex":"Женщина","age":57}],"health":[{"id":"health_01","text":"Полностью здоров(а), хронических заболеваний нет."},{"id":"health_02","text":"Близорукость, нужны очки."},{"id":"health_03","text":"Аллергия на пыльцу растений."},{"id":"health_04","text":"Аллергия на некоторые антибиотики."},{"id":"health_05","text":"Слабый иммунитет, часто болеет."},{"id":"health_06","text":"Старая травма колена, трудно бегать."},{"id":"health_07","text":"Периодически болит спина."},{"id":"health_08","text":"Нуждается в ежедневном приёме лекарства."},{"id":"health_09","text":"Нарушение слуха на одно ухо."},{"id":"health_10","text":"Плохо видит в темноте."},{"id":"health_11","text":"Астма лёгкой степени."},{"id":"health_12","text":"Сахарный диабет, необходим контроль питания и лекарств."},{"id":"health_13","text":"Повышенное давление."},{"id":"health_14","text":"Сильная аллергия на укусы пчёл."},{"id":"health_15","text":"Полностью здоров(а), отличная физическая форма."},{"id":"health_16","text":"Отсутствуют два пальца на одной руке."},{"id":"health_17","text":"Перенёс(ла) сложную операцию, восстановился(ась)."},{"id":"health_18","text":"Слабые лёгкие, тяжело переносит дым."},{"id":"health_19","text":"Непереносимость лактозы."},{"id":"health_20","text":"Склонность к укачиванию."},{"id":"health_21","text":"Нуждается в ортопедической обуви."},{"id":"health_22","text":"Есть старая травма плеча."},{"id":"health_23","text":"Плохое зрение, контактные линзы."},{"id":"health_24","text":"Хорошая выносливость, крепкое здоровье."},{"id":"health_25","text":"Частые мигрени."},{"id":"health_26","text":"Нарушение цветового восприятия."},{"id":"health_27","text":"Сильно обгорает на солнце."},{"id":"health_28","text":"Есть зубные протезы."},{"id":"health_29","text":"Восстанавливается после перелома руки."},{"id":"health_30","text":"Здоров(а), но физически очень слаб(а)."}],"hobbies":[{"id":"hobby_01","text":"Рыбалка"},{"id":"hobby_02","text":"Садоводство"},{"id":"hobby_03","text":"Шахматы"},{"id":"hobby_04","text":"Настольные игры"},{"id":"hobby_05","text":"Бег"},{"id":"hobby_06","text":"Плавание"},{"id":"hobby_07","text":"Туризм и походы"},{"id":"hobby_08","text":"Рисование"},{"id":"hobby_09","text":"Фотография"},{"id":"hobby_10","text":"Игра на гитаре"},{"id":"hobby_11","text":"Кулинария"},{"id":"hobby_12","text":"Чтение книг"},{"id":"hobby_13","text":"Ремонт техники"},{"id":"hobby_14","text":"Моделирование"},{"id":"hobby_15","text":"Йога"},{"id":"hobby_16","text":"Единоборства"},{"id":"hobby_17","text":"Велоспорт"},{"id":"hobby_18","text":"Пение"},{"id":"hobby_19","text":"Танцы"},{"id":"hobby_20","text":"Коллекционирование монет"},{"id":"hobby_21","text":"Наблюдение за птицами"},{"id":"hobby_22","text":"Шитьё и вязание"},{"id":"hobby_23","text":"Столярное дело"},{"id":"hobby_24","text":"Выращивание комнатных растений"},{"id":"hobby_25","text":"Охота"},{"id":"hobby_26","text":"Астрономия"},{"id":"hobby_27","text":"Изучение языков"},{"id":"hobby_28","text":"Радиолюбительство"},{"id":"hobby_29","text":"Пазлы"},{"id":"hobby_30","text":"Выпечка хлеба"}],"phobias":[{"id":"phobia_01","text":"Клаустрофобия — страх замкнутых пространств."},{"id":"phobia_02","text":"Акрофобия — страх высоты."},{"id":"phobia_03","text":"Арахнофобия — страх пауков."},{"id":"phobia_04","text":"Никтофобия — страх темноты."},{"id":"phobia_05","text":"Аэрофобия — страх полётов."},{"id":"phobia_06","text":"Гидрофобия — сильный страх воды."},{"id":"phobia_07","text":"Трипанофобия — страх уколов."},{"id":"phobia_08","text":"Мизофобия — страх грязи и микробов."},{"id":"phobia_09","text":"Офидиофобия — страх змей."},{"id":"phobia_10","text":"Танатофобия — страх смерти."},{"id":"phobia_11","text":"Социофобия — страх общения с незнакомцами."},{"id":"phobia_12","text":"Агорафобия — страх открытых пространств и толпы."},{"id":"phobia_13","text":"Гемофобия — страх крови."},{"id":"phobia_14","text":"Кинофобия — страх собак."},{"id":"phobia_15","text":"Энтомофобия — страх насекомых."},{"id":"phobia_16","text":"Бронтофобия — страх грома и молний."},{"id":"phobia_17","text":"Пирофобия — страх огня."},{"id":"phobia_18","text":"Сомнифобия — страх засыпания."},{"id":"phobia_19","text":"Гефирофобия — страх мостов."},{"id":"phobia_20","text":"Амаксофобия — страх поездок в транспорте."},{"id":"phobia_21","text":"Монофобия — страх одиночества."},{"id":"phobia_22","text":"Глоссофобия — страх публичных выступлений."},{"id":"phobia_23","text":"Атихифобия — страх неудачи."},{"id":"phobia_24","text":"Никтофобии нет, но боится полной тишины."},{"id":"phobia_25","text":"Боится потерять контроль над ситуацией."},{"id":"phobia_26","text":"Боится медицинских учреждений."},{"id":"phobia_27","text":"Боится глубоких подземных помещений."},{"id":"phobia_28","text":"Боится резких громких звуков."},{"id":"phobia_29","text":"Боится больших скоплений людей."},{"id":"phobia_30","text":"Фобий не имеет."}],"baggage":[{"id":"baggage_01","text":"Рюкзак с набором инструментов."},{"id":"baggage_02","text":"Аптечка с перевязочными материалами."},{"id":"baggage_03","text":"Портативная солнечная панель."},{"id":"baggage_04","text":"Запас семян овощей."},{"id":"baggage_05","text":"Складной нож и мультитул."},{"id":"baggage_06","text":"Фильтр для очистки воды."},{"id":"baggage_07","text":"Пять литров питьевой воды."},{"id":"baggage_08","text":"Рация с запасным аккумулятором."},{"id":"baggage_09","text":"Комплект тёплой одежды."},{"id":"baggage_10","text":"Набор рыболовных снастей."},{"id":"baggage_11","text":"Книга по выживанию."},{"id":"baggage_12","text":"Портативная газовая горелка."},{"id":"baggage_13","text":"Спальный мешок."},{"id":"baggage_14","text":"Набор посуды и котелок."},{"id":"baggage_15","text":"Фонарик с ручной зарядкой."},{"id":"baggage_16","text":"Верёвка длиной 30 метров."},{"id":"baggage_17","text":"Набор для шитья и ремонта одежды."},{"id":"baggage_18","text":"Старый ноутбук с офлайн-библиотекой знаний."},{"id":"baggage_19","text":"Маленький генератор."},{"id":"baggage_20","text":"Запас батареек."},{"id":"baggage_21","text":"Топор и ручная пила."},{"id":"baggage_22","text":"Детектор радиации."},{"id":"baggage_23","text":"Набор семян лекарственных растений."},{"id":"baggage_24","text":"Комплект для ремонта обуви."},{"id":"baggage_25","text":"Полевой бинокль."},{"id":"baggage_26","text":"Карта местности и компас."},{"id":"baggage_27","text":"Ручной насос."},{"id":"baggage_28","text":"Небольшой запас консервов."},{"id":"baggage_29","text":"Набор для разведения огня."},{"id":"baggage_30","text":"Семейный фотоальбом, не имеющий практической ценности."}],"special_conditions":[{"id":"special_01","text":"Не может раскрыть свою профессию до второго голосования."},{"id":"special_02","text":"Имеет право один раз поменять свою карту здоровья."},{"id":"special_03","text":"Должен выбрать союзника и голосовать вместе с ним один раунд."},{"id":"special_04","text":"Не может голосовать в первом раунде."},{"id":"special_05","text":"Может задать одному игроку дополнительный вопрос."},{"id":"special_06","text":"Должен раскрыть одну карту по выбору группы."},{"id":"special_07","text":"Его голос считается за два в одном голосовании."},{"id":"special_08","text":"Необходимо убедить группу, что он полезен, не называя профессию."},{"id":"special_09","text":"Может один раз отменить своё выбывание, если большинство согласится."},{"id":"special_10","text":"Должен раскрыть свою фобию сразу."},{"id":"special_11","text":"Получает дополнительное место в бункере для выбранного игрока."},{"id":"special_12","text":"Не может раскрывать багаж до последнего раунда."},{"id":"special_13","text":"Может обменять одну свою карту с закрытой колодой."},{"id":"special_14","text":"Обязан первым рассказать о своих навыках."},{"id":"special_15","text":"Может один раз изменить голос после обсуждения."},{"id":"special_16","text":"Его карта факта раскрывается случайным образом."},{"id":"special_17","text":"Должен выбрать игрока, чью профессию будет защищать."},{"id":"special_18","text":"Не может раскрывать возраст до финального голосования."},{"id":"special_19","text":"Получает право на дополнительную минуту выступления."},{"id":"special_20","text":"Должен раскрыть две карты вместо одной при следующем раскрытии."},{"id":"special_21","text":"Может один раз попросить группу провести повторное голосование."},{"id":"special_22","text":"Его багаж считается общим ресурсом команды."},{"id":"special_23","text":"Не может голосовать против выбранного им союзника."},{"id":"special_24","text":"Может скрыть одну негативную характеристику до конца игры."},{"id":"special_25","text":"Должен рассказать правдивую историю из прошлого персонажа."},{"id":"special_26","text":"При равенстве голосов его голос решающий."},{"id":"special_27","text":"Может предложить обмен картами двум игрокам."},{"id":"special_28","text":"Должен раскрыть профессию, но может скрыть факт."},{"id":"special_29","text":"Получает право последним выступить перед голосованием."},{"id":"special_30","text":"Особых условий нет."}],"catastrophes":[{"id":"disaster_01","text":"Глобальная пандемия неизвестного вируса: большая часть населения заражена."},{"id":"disaster_02","text":"Падение крупного астероида вызвало масштабные разрушения и пожары."},{"id":"disaster_03","text":"Ядерная война сделала значительную часть поверхности опасной для жизни."},{"id":"disaster_04","text":"Серия супервулканических извержений закрыла небо пеплом на годы."},{"id":"disaster_05","text":"Глобальное потепление вызвало экстремальную жару и засуху."},{"id":"disaster_06","text":"Мощнейшее землетрясение разрушило большинство крупных городов."},{"id":"disaster_07","text":"Мировой океан поднялся и затопил прибрежные территории."},{"id":"disaster_08","text":"Неизвестный грибок уничтожает основные сельскохозяйственные культуры."},{"id":"disaster_09","text":"Солнечная буря вывела из строя большую часть электроники и энергосетей."},{"id":"disaster_10","text":"Крупная комета вызвала климатическую катастрофу."},{"id":"disaster_11","text":"Химическая авария распространила токсичное облако над несколькими странами."},{"id":"disaster_12","text":"Массовое вымирание пчёл привело к продовольственному кризису."},{"id":"disaster_13","text":"Глобальная война разрушила транспортную и энергетическую инфраструктуру."},{"id":"disaster_14","text":"Необычайно сильные морозы охватили большую часть планеты."},{"id":"disaster_15","text":"Непрерывные ливни вызвали всемирные наводнения."},{"id":"disaster_16","text":"Экспериментальная технология вышла из-под контроля и загрязнила атмосферу."},{"id":"disaster_17","text":"Опасные мутации микроорганизмов сделали многие источники воды непригодными."},{"id":"disaster_18","text":"Цепь мощных цунами уничтожила множество прибрежных поселений."},{"id":"disaster_19","text":"Длительная пыльная буря закрыла солнце и нарушила климат."},{"id":"disaster_20","text":"Неизвестное явление резко изменило состав атмосферы."}],"threats":[{"id":"threat_01","text":"Запасы продовольствия заражены неизвестным токсином."},{"id":"threat_02","text":"Вентиляционная система периодически пропускает опасный газ."},{"id":"threat_03","text":"Рядом с бункером замечена агрессивная группа выживших."},{"id":"threat_04","text":"Система фильтрации воды может выйти из строя через месяц."},{"id":"threat_05","text":"В бункере обнаружен источник неизвестной инфекции."},{"id":"threat_06","text":"Электроснабжение нестабильно, топлива осталось мало."},{"id":"threat_07","text":"Вход в бункер постепенно засыпает обломками."},{"id":"threat_08","text":"В районе бункера повышен уровень радиации."},{"id":"threat_09","text":"В помещении есть скрытая неисправность системы пожаротушения."},{"id":"threat_10","text":"Радиосигнал привлёк внимание неизвестных людей."},{"id":"threat_11","text":"Через год запасы кислорода потребуют полной замены системы."}],"bunker_descriptions":[{"id":"bunker_01","text":"Подземный бункер на 10 человек. Есть скважина, кухня и небольшая теплица."},{"id":"bunker_02","text":"Военный объект с толстыми стенами, но без собственного источника воды."},{"id":"bunker_03","text":"Старое метро с несколькими залами и работающей вентиляцией."},{"id":"bunker_04","text":"Научная лаборатория с медицинским блоком и оборудованием."},{"id":"bunker_05","text":"Горный бункер, скрытый внутри скалы. Вход только один."},{"id":"bunker_06","text":"Подземное хранилище с большими запасами консервов."},{"id":"bunker_07","text":"Бункер построен под бывшей больницей, есть операционная."},{"id":"bunker_08","text":"Автономный комплекс с солнечными панелями и аккумуляторами."},{"id":"bunker_09","text":"Небольшое убежище под сельской фермой, рядом плодородная земля."},{"id":"bunker_10","text":"Арктическая станция с мощной теплоизоляцией."},{"id":"bunker_11","text":"Подземный командный пункт с радиорубкой и картами местности."},{"id":"bunker_12","text":"Заброшенный шахтёрский комплекс с несколькими уровнями."},{"id":"bunker_13","text":"Бункер под университетом, есть библиотека и мастерские."},{"id":"bunker_14","text":"Старый гражданский бункер, рассчитанный на 20 человек."},{"id":"bunker_15","text":"Подземный склад с инструментами, но почти без еды."},{"id":"bunker_16","text":"Комплекс с теплицей, системой сбора дождевой воды и компостером."},{"id":"bunker_17","text":"Убежище в пустыне: прохладно внутри, но вода строго ограничена."},{"id":"bunker_18","text":"Бункер на острове, защищённый от большинства наземных угроз."},{"id":"bunker_19","text":"Подземный исследовательский центр с лабораторией биологии."},{"id":"bunker_20","text":"Убежище под электростанцией, есть генераторы и запас топлива."},{"id":"bunker_21","text":"Небольшой бункер с одной общей комнатой и двумя спальными отсеками."},{"id":"bunker_22","text":"Бункер с мастерской, токарным станком и набором деталей."},{"id":"bunker_23","text":"Укрытие в горной пещере, укреплённое металлическими дверями."},{"id":"bunker_24","text":"Подземный жилой комплекс с душевыми и системой отопления."},{"id":"bunker_25","text":"Бункер с запасом семян, но без специалистов по сельскому хозяйству."},{"id":"bunker_26","text":"Старый бункер связи с мощной антенной на поверхности."},{"id":"bunker_27","text":"Медицинское убежище с ограниченным запасом лекарств."},{"id":"bunker_28","text":"Подземный комплекс с бассейном для хранения технической воды."},{"id":"bunker_29","text":"Бункер с отдельным складом, который пока невозможно открыть."},{"id":"bunker_30","text":"Убежище на окраине города: удобно добираться, но оно заметно снаружи."}],"action_cards":[{"id":"action_01","text":"Обмен: обменяйте одну открытую карту с любым игроком по взаимному согласию."},{"id":"action_02","text":"Разоблачение: выберите игрока — он обязан раскрыть одну случайную закрытую карту."},{"id":"action_03","text":"Защита: отмените один голос против себя в текущем раунде."},{"id":"action_04","text":"Переговоры: получите дополнительную минуту, чтобы убедить группу."},{"id":"action_05","text":"Пересмотр: проведите повторное голосование после короткого обсуждения."},{"id":"action_06","text":"Проверка: задайте одному игроку вопрос, на который он должен ответить честно."},{"id":"action_07","text":"Смена мест: поменяйтесь одной картой с другим игроком, не раскрывая её группе."},{"id":"action_08","text":"Союз: выберите игрока; ваши голоса считаются одним общим голосом в этом раунде."},{"id":"action_09","text":"Тайна: спрячьте одну свою открытую карту до следующего раунда."},{"id":"action_10","text":"Испытание: предложите игроку назвать три способа применить его профессию в бункере."},{"id":"action_11","text":"Дополнительный вопрос: задайте группе вопрос о состоянии бункера."},{"id":"action_12","text":"Вето: отмените действие одной сыгранной карты действия."},{"id":"action_13","text":"Открытая информация: все игроки одновременно раскрывают по одной карте."},{"id":"action_14","text":"Риск: назовите игрока; он раскрывает карту или теряет право голоса в раунде."},{"id":"action_15","text":"Перетасовка: перемешайте закрытые карты одного типа и раздайте обратно их владельцам."},{"id":"action_16","text":"Обмен ресурсами: передайте свой багаж выбранному игроку, а его багаж возьмите себе."},{"id":"action_17","text":"Последнее слово: выступите последним перед голосованием."},{"id":"action_18","text":"Молчание: выбранный игрок не может выступать до конца обсуждения."},{"id":"action_19","text":"Доверие: выберите игрока, который обязан публично подтвердить или опровергнуть один ваш факт."},{"id":"action_20","text":"Случайность: случайный игрок раскрывает одну закрытую карту."},{"id":"action_21","text":"Дополнительный шанс: игрок, набравший больше всего голосов, получает право на короткую защитную речь."},{"id":"action_22","text":"Командная задача: два выбранных игрока должны вместе предложить план выживания."},{"id":"action_23","text":"Скрытый ресурс: получите случайную карту багажа из колоды."},{"id":"action_24","text":"Смена решения: один раз измените свой голос после объявления результатов."},{"id":"action_25","text":"Проверка профессии: игрок объясняет, какую конкретную пользу принесёт его профессия."},{"id":"action_26","text":"Общее решение: группа должна единогласно выбрать один ресурс, который будет сохранён."},{"id":"action_27","text":"Перемирие: в этом раунде нельзя голосовать против выбранного вами игрока."},{"id":"action_28","text":"Раскрытие угрозы: ведущий зачитывает дополнительную угрозу бункеру."},{"id":"action_29","text":"Случайное событие: ведущий выбирает и применяет эффект любой одной карты действия."},{"id":"action_30","text":"Отмена: отмените эффект последней сыгранной карты действия."}]};
+
+let currentUser = null, currentRoomId = null, unsubscribeRoom = null;
+let selectedGame = null, lastRoom = null, sheetMode = null, seenChat = 0, selCard = null, targetFor = null;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const GAME_NAME = { crocodile: '🐊 Крокодил', bunker: '☢️ Бункер' };
+
+// ---------- Авторизация / профиль ----------
+window.loginWithGoogle = async () => {
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch (e) { alert("Ошибка входа: " + e.message); }
+};
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    currentUser = user;
+    const snap = await getDoc(doc(db, "users", user.uid));
+    if (snap.exists() && snap.data().name) {
+      currentUser.displayNameCustom = snap.data().name;
+      $('display-user-name').innerText = currentUser.displayNameCustom;
+      showScreen('screen-select');
+    } else showScreen('screen-profile');
+  } else { currentUser = null; showScreen('screen-auth'); }
+});
+
+window.saveProfile = async () => {
+  const name = $('profile-name').value.trim();
+  if (!name) return alert("Введите имя!");
+  await setDoc(doc(db, "users", currentUser.uid), { name, email: currentUser.email });
+  currentUser.displayNameCustom = name;
+  $('display-user-name').innerText = name;
+  showScreen('screen-select');
+};
+
+window.selectGame = (g) => {
+  selectedGame = g;
+  $('menu-title').innerText = GAME_NAME[g];
+  showScreen('screen-menu');
+};
+
+// ---------- Комнаты ----------
+window.createRoomModal = async () => {
+  let theme = '';
+  if (selectedGame === 'crocodile') {
+    theme = prompt("Введите общую тему для игры:");
+    if (!theme) return;
+  }
+  const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+  const roomId = "room_" + roomCode;
+  const me = { id: currentUser.uid, name: currentUser.displayNameCustom };
+  const roomData = {
+    code: roomCode, game: selectedGame, theme, hostId: currentUser.uid, status: 'waiting',
+    chat: [], currentTurnIndex: 0,
+    players: [selectedGame === 'crocodile' ? { ...me, word: '', assignedWord: '', isGuessed: false } : { ...me }]
+  };
+  await setDoc(doc(db, "rooms", roomId), roomData);
+  enterRoom(roomId);
+};
+
+window.joinRoom = async () => {
+  const code = $('join-code').value.trim();
+  if (!code) return alert("Введите код комнаты!");
+  const snapQ = await getDocs(query(collection(db, "rooms"), where("code", "==", code)));
+  if (snapQ.empty) return alert("Комната не найдена!");
+
+  const roomDoc = snapQ.docs[0];
+  const room = roomDoc.data();
+  const game = room.game || 'crocodile';
+  const already = room.players.some(p => p.id === currentUser.uid);
+
+  if (!already) {
+    if (room.status !== 'waiting') return alert("Игра уже началась!");
+    if (room.players.length >= 10) return alert("Комната заполнена (макс. 10 игроков)!");
+    const me = { id: currentUser.uid, name: currentUser.displayNameCustom };
+    room.players.push(game === 'crocodile' ? { ...me, word: '', assignedWord: '', isGuessed: false } : me);
+    await updateDoc(doc(db, "rooms", roomDoc.id), { players: room.players });
+  }
+  selectedGame = game;
+  enterRoom(roomDoc.id);
+};
+
+function enterRoom(roomId) {
+  currentRoomId = roomId; lastRoom = null; seenChat = 0; selCard = null; targetFor = null;
+  showScreen('screen-room');
+  if (unsubscribeRoom) unsubscribeRoom();
+  unsubscribeRoom = onSnapshot(doc(db, "rooms", roomId), (snap) => {
+    if (!snap.exists()) { alert("Комната была удалена"); leaveToMenu(); return; }
+    lastRoom = snap.data();
+    updateRoomUI(lastRoom);
+  });
+}
+
+function updateRoomUI(room) {
+  const game = room.game || 'crocodile';
+  $('room-title').innerText = game === 'crocodile' ? `Крокодил (тема: ${room.theme})` : 'Бункер — ожидание игроков';
+  $('room-code-display').innerText = room.code;
+  $('players-list').innerHTML = room.players.map(p =>
+    `<div class="player-item"><span>${esc(p.name)}</span>${p.id === room.hostId ? '<b>(Создатель)</b>' : ''}</div>`).join('');
+
+  const startBtn = $('start-game-btn');
+  startBtn.classList.toggle('hidden', !(room.hostId === currentUser.uid && room.status === 'waiting' && room.players.length >= 3));
+
+  if (game === 'crocodile') {
+    if (room.status === 'input' && $('screen-word-input').classList.contains('hidden') && $('screen-game').classList.contains('hidden')) {
+      showScreen('screen-word-input'); $('input-theme').innerText = room.theme;
+    } else if (room.status === 'playing') { showScreen('screen-game'); renderGame(room); }
+  } else if (room.status === 'playing' || room.status === 'finished') {
+    showScreen('screen-bunker'); renderBunker(room);
+  }
+  renderChatAndSheet(room);
+}
+
+window.startGame = async () => {
+  const room = lastRoom;
+  if ((room.game || 'crocodile') === 'crocodile') {
+    await updateDoc(doc(db, "rooms", currentRoomId), { status: 'input' });
+  } else {
+    await updateDoc(doc(db, "rooms", currentRoomId), dealBunker(room));
+  }
+};
+
+// ---------- Крокодил ----------
+window.submitWord = async () => {
+  const word = $('secret-word-input').value.trim();
+  if (!word) return alert("Введите слово!");
+  const roomRef = doc(db, "rooms", currentRoomId);
+  const room = (await getDoc(roomRef)).data();
+  room.players.find(p => p.id === currentUser.uid).word = word;
+
+  if (room.players.every(p => p.word !== '')) {
+    const words = room.players.map(p => p.word);
+    let shuffled, valid = false;
+    while (!valid) {
+      shuffled = [...words].sort(() => Math.random() - 0.5);
+      valid = room.players.every((p, i) => p.word !== shuffled[i]);
+    }
+    room.players.forEach((p, i) => p.assignedWord = shuffled[i]);
+    room.status = 'playing';
+  }
+  await updateDoc(roomRef, { players: room.players, status: room.status });
+};
+
+function renderGame(room) {
+  $('win-btn').classList.remove('hidden');
+  const cur = room.players[room.currentTurnIndex % room.players.length];
+  $('current-turn-name').innerText = cur.name;
+  $('game-players-list').innerHTML = room.players.map(p => {
+    const wordInfo = p.id === currentUser.uid ? "<i>(Ваше слово скрыто от вас)</i>" : `Слово: <b>${esc(p.assignedWord)}</b>`;
+    return `<div class="player-item" style="background:${p.isGuessed ? '#e6ffe6' : 'white'}">
+      <span>${esc(p.name)} ${p.isGuessed ? '✅ Угадал' : ''}</span><span>${wordInfo}</span></div>`;
+  }).join('');
+  $('turn-controls').classList.toggle('hidden', cur.id !== currentUser.uid);
+}
+
+window.handleGuessResult = async (guessed) => {
+  const roomRef = doc(db, "rooms", currentRoomId);
+  const room = (await getDoc(roomRef)).data();
+  if (guessed) room.players[room.currentTurnIndex % room.players.length].isGuessed = true;
+  else room.currentTurnIndex += 1;
+  await updateDoc(roomRef, { players: room.players, currentTurnIndex: room.currentTurnIndex });
+};
+
+window.declareWin = async () => {
+  alert("Поздравляем с победой! Комната удаляется, игра завершена.");
+  if (currentRoomId) await deleteDoc(doc(db, "rooms", currentRoomId));
+  leaveToMenu();
+};
+
+// ---------- Бункер: раздача ----------
+const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const ruYears = n => { const m = n % 10, h = n % 100; return `${n} ${m === 1 && h !== 11 ? 'год' : (m >= 2 && m <= 4 && (h < 12 || h > 14)) ? 'года' : 'лет'}`; };
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+const CARD_TYPES = [
+  ['bio', 'Пол и возраст'], ['profession', 'Профессия'], ['health', 'Здоровье'], ['hobby', 'Хобби'],
+  ['phobia', 'Фобия'], ['baggage', 'Багаж'], ['fact', 'Факт']
+];
+
+function dealBunker(room) {
+  const D = bunkerData, n = room.players.length;
+  const decks = {
+    bio: shuffle(D.biological_characteristics).map(b => `${b.sex}, ${ruYears(b.age)}`),
+    profession: shuffle(D.professions).map(x => x.text), health: shuffle(D.health).map(x => x.text),
+    hobby: shuffle(D.hobbies).map(x => x.text), phobia: shuffle(D.phobias).map(x => x.text),
+    baggage: shuffle(D.baggage).map(x => x.text), fact: shuffle(D.facts).map(x => x.text)
+  };
+  const actions = shuffle(D.action_cards).map(x => x.text);
+  const players = room.players.map((p, i) => ({
+    id: p.id, name: p.name, eliminated: false, revealedRound: 0,
+    cards: CARD_TYPES.map(([k, label]) => ({ key: k, label, text: decks[k][i], revealed: false })),
+    actions: [actions[i * 2], actions[i * 2 + 1]].map(t => ({ text: t, used: false }))
+  }));
+  return {
+    players, status: 'playing', phase: 'reveal', round: 1, votes: {}, ties: 0, effects: [], lastEvent: '',
+    seats: Math.max(1, Math.floor(n / 2)),
+    catastrophe: pick(D.catastrophes).text, bunkerDesc: pick(D.bunker_descriptions).text
+  };
+}
+
+// ---------- Бункер: логика (в транзакциях) ----------
+async function mutate(fn) {
+  const ref = doc(db, "rooms", currentRoomId);
+  await runTransaction(db, async (tx) => {
+    const room = (await tx.get(ref)).data();
+    if (fn(room) === false) return;
+    tx.update(ref, room);
+  });
+}
+const alive = room => room.players.filter(p => !p.eliminated);
+const turnPlayer = room => alive(room).find(p => p.revealedRound !== room.round);
+
+window.selectCard = (i) => { selCard = selCard === i ? null : i; renderBunker(lastRoom); };
+
+window.revealCard = () => {
+  const i = selCard; if (i === null) return;
+  selCard = null;
+  mutate(room => {
+    const t = turnPlayer(room);
+    if (room.phase !== 'reveal' || !t || t.id !== currentUser.uid) return false;
+    const me = room.players.find(p => p.id === currentUser.uid);
+    if (me.cards[i].revealed) return false;
+    me.cards[i].revealed = true; me.revealedRound = room.round;
+    room.lastEvent = `${me.name} открыл(а): ${me.cards[i].label} — ${me.cards[i].text}`;
+    if (!turnPlayer(room)) { room.phase = 'vote'; room.votes = {}; room.ties = 0; }
+  });
+};
+
+window.castVote = (targetId) => {
+  mutate(room => {
+    const me = room.players.find(p => p.id === currentUser.uid);
+    if (room.phase !== 'vote' || me.eliminated || room.votes[me.id]) return false;
+    room.votes[me.id] = targetId;
+    const a = alive(room);
+    if (Object.keys(room.votes).length < a.length) return;
+
+    const tally = {};
+    Object.values(room.votes).forEach(t => tally[t] = (tally[t] || 0) + 1);
+    const max = Math.max(...Object.values(tally));
+    let top = Object.keys(tally).filter(k => tally[k] === max);
+
+    if (top.length > 1 && room.ties < 2) {
+      room.ties += 1; room.votes = {};
+      room.lastEvent = `Голоса разделились — никого не выгнали. Повторное голосование (${room.ties}).`;
+      return;
+    }
+    const outId = pick(top);
+    const out = room.players.find(p => p.id === outId);
+    out.eliminated = true; out.cards.forEach(c => c.revealed = true);
+    room.lastEvent = `${out.name} выгнан(а) из бункера.` + (top.length > 1 ? ' (жребий среди равных)' : '');
+    room.votes = {}; room.ties = 0;
+    if (alive(room).length <= room.seats) { room.status = 'finished'; return; }
+    room.round += 1; room.phase = 'reveal';
+  });
+};
+
+window.pickTarget = (actIdx) => { targetFor = targetFor === actIdx ? null : actIdx; renderBunker(lastRoom); };
+window.useAction = (actIdx, target) => {
+  targetFor = null;
+  mutate(room => {
+    const me = room.players.find(p => p.id === currentUser.uid);
+    const a = me.actions[actIdx];
+    if (a.used || me.eliminated) return false;
+    a.used = true;
+    room.effects = room.effects || [];
+    room.effects.push({ by: me.name, text: a.text, target, round: room.round });
+    const tName = target === 'bunker' ? 'бункер' : room.players.find(p => p.id === target).name;
+    room.lastEvent = `${me.name} применил(а) карту на: ${tName}`;
+  });
+};
+
+// ---------- Бункер: отрисовка ----------
+const effectsHtml = (room, target) => (room.effects || []).filter(e => e.target === target)
+  .map(e => `<div class="tag bad">⚡ ${esc(e.text)} <i>(${esc(e.by)}, р.${e.round})</i></div>`).join('');
+
+function renderBunker(room) {
+  const me = room.players.find(p => p.id === currentUser.uid);
+  const isHost = room.hostId === currentUser.uid;
+  $('b-round').innerText = room.round;
+  $('b-world').innerHTML = `
+    <h4>🌍 Катастрофа</h4><div>${esc(room.catastrophe)}</div>
+    <h4 style="margin-top:10px">🏚 Бункер (мест: ${room.seats}, осталось игроков: ${alive(room).length})</h4><div>${esc(room.bunkerDesc)}</div>
+    ${effectsHtml(room, 'bunker') ? `<div style="margin-top:6px"><b>Действуют на бункер:</b><br>${effectsHtml(room, 'bunker')}</div>` : ''}`;
+
+  const t = turnPlayer(room);
+  let status = room.status === 'finished' ? '🏁 Игра окончена' :
+    room.phase === 'reveal' ? (t ? (t.id === me.id ? '👉 Ваш ход: нажмите на свою карту и откройте её всем' : `Открывает карту: ${esc(t.name)}`) : '') :
+    `🗳 Голосование${room.ties ? ` (повторное, №${room.ties}+1)` : ''}: ${Object.keys(room.votes || {}).length}/${alive(room).length} проголосовали`;
+  $('b-status').innerHTML = status + (room.lastEvent ? `<div style="font-weight:normal;margin-top:6px;font-size:14px">${esc(room.lastEvent)}</div>` : '');
+
+  // Голосование
+  const voteEl = $('b-vote');
+  const voting = room.status === 'playing' && room.phase === 'vote' && !me.eliminated;
+  voteEl.classList.toggle('hidden', !voting);
+  if (voting) {
+    const my = (room.votes || {})[me.id];
+    voteEl.innerHTML = my ? `<div class="box">Вы проголосовали против: <b>${esc(room.players.find(p => p.id === my).name)}</b>. Ждём остальных…</div>` :
+      `<div class="box"><h4>Кого выгнать?</h4>${alive(room).filter(p => p.id !== me.id).map(p =>
+        `<button class="red" onclick="castVote('${p.id}')">${esc(p.name)}</button>`).join('')}</div>`;
+  }
+
+  // Мои карты
+  const canReveal = room.status === 'playing' && room.phase === 'reveal' && t && t.id === me.id;
+  let html = `<div class="box"><h4>Ваш персонаж${me.eliminated ? ' (вы выгнаны)' : ''}</h4><div class="cards">` +
+    me.cards.map((c, i) => `<div class="bcard ${c.revealed ? 'open' : ''} ${selCard === i ? 'sel' : ''}"
+      ${!c.revealed && canReveal ? `onclick="selectCard(${i})"` : ''}>
+      <small>${c.label}${c.revealed ? ' · открыто' : ''}</small>${esc(c.text)}</div>`).join('') + `</div>`;
+  if (canReveal && selCard !== null) html += `<button class="green" onclick="revealCard()">👁 Показать всем: ${me.cards[selCard].label}</button>`;
+  html += effectsHtml(room, me.id) ? `<div style="margin-top:8px"><b>Действуют на вас:</b><br>${effectsHtml(room, me.id)}</div>` : '';
+  html += `</div>`;
+
+  // Карты действия
+  if (room.status === 'playing' && !me.eliminated) {
+    html += `<div class="box"><h4>Ваши карты действия</h4>` + me.actions.map((a, i) => `
+      <div style="margin:8px 0;${a.used ? 'opacity:.5' : ''}">
+        <div>${esc(a.text)} ${a.used ? '<b>(использована)</b>' : ''}</div>
+        ${a.used ? '' : `<button class="small gray" onclick="pickTarget(${i})">Применить…</button>`}
+        ${targetFor === i ? `<div>На кого?<br>
+          <button class="small red" onclick="useAction(${i},'bunker')">☢️ Бункер</button>
+          ${room.players.filter(p => !p.eliminated).map(p => `<button class="small" onclick="useAction(${i},'${p.id}')">${esc(p.name)}${p.id === me.id ? ' (я)' : ''}</button>`).join('')}</div>` : ''}
+      </div>`).join('') + `</div>`;
+  }
+  $('b-me').innerHTML = html;
+
+  // Финал
+  const end = $('b-end');
+  end.classList.toggle('hidden', room.status !== 'finished');
+  if (room.status === 'finished') {
+    end.innerHTML = `<div class="box"><h4>🎉 Выжили в бункере:</h4>${alive(room).map(p => `<div>✅ ${esc(p.name)}</div>`).join('')}
+      ${isHost ? `<button class="red" onclick="closeRoom()">Удалить комнату</button>` : ''}
+      <button class="gray" onclick="leaveToMenu()">Выйти в меню</button></div>`;
+  }
+}
+
+window.closeRoom = async () => { if (currentRoomId) await deleteDoc(doc(db, "rooms", currentRoomId)); leaveToMenu(); };
+
+// ---------- Окно «Игроки» ----------
+function playersSheetHtml(room) {
+  if ((room.game || 'crocodile') === 'crocodile') {
+    if (room.status !== 'playing') return room.players.map(p => `<div class="player-item">${esc(p.name)}</div>`).join('');
+    return room.players.map(p => `<div class="player-item" style="background:${p.isGuessed ? '#e6ffe6' : 'white'}">
+      <span>${esc(p.name)} ${p.isGuessed ? '✅ Угадал' : ''}</span>
+      <span>${p.id === currentUser.uid ? '<i>(скрыто от вас)</i>' : 'Слово: <b>' + esc(p.assignedWord) + '</b>'}</span></div>`).join('');
+  }
+  if (room.status === 'waiting') return room.players.map(p => `<div class="player-item">${esc(p.name)}</div>`).join('');
+  return room.players.map(p => {
+    const open = p.cards.filter(c => c.revealed);
+    return `<div class="box ${p.eliminated ? 'dead' : ''}"><h4 class="name">${esc(p.name)} ${p.eliminated ? '❌ выгнан(а)' : ''}</h4>
+      ${open.length ? open.map(c => `<div class="tag" style="background:#e6f4ea;border-color:#9ad3a8"><b>${c.label}:</b> ${esc(c.text)}</div>`).join('') : '<i>пока ничего не открыто</i>'}
+      <div style="font-size:12px;color:#888;margin-top:6px">Закрыто карт: ${p.cards.length - open.length}</div>
+      ${effectsHtml(room, p.id) ? `<div style="margin-top:6px"><b>Карты действия на игроке:</b><br>${effectsHtml(room, p.id)}</div>` : ''}</div>`;
+  }).join('');
+}
+
+// ---------- Чат и панели ----------
+window.openSheet = (mode) => {
+  sheetMode = mode;
+  $('sheet').classList.remove('hidden');
+  $('sheet-title').innerText = mode === 'chat' ? '💬 Чат' : '👥 Игроки';
+  $('sheet-players').classList.toggle('hidden', mode !== 'players');
+  $('sheet-chat').classList.toggle('hidden', mode !== 'chat');
+  if (lastRoom) renderChatAndSheet(lastRoom);
+  if (mode === 'chat') $('chat-input').focus();
+};
+window.closeSheet = () => { sheetMode = null; $('sheet').classList.add('hidden'); if (lastRoom) renderChatAndSheet(lastRoom); };
+
+function renderChatAndSheet(room) {
+  const chat = room.chat || [];
+  if (sheetMode === 'chat') {
+    seenChat = chat.length;
+    const box = $('chat-msgs');
+    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+    box.innerHTML = chat.slice(-100).map(m => `<div class="msg ${m.uid === currentUser.uid ? 'me' : ''}"><b>${esc(m.name)}</b><i>${new Date(m.ts).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</i><br>${esc(m.text)}</div>`).join('') || '<i style="color:#999">Сообщений пока нет</i>';
+    if (atBottom) box.scrollTop = box.scrollHeight;
+  }
+  const unread = chat.length - seenChat;
+  $('chat-badge').innerText = unread;
+  $('chat-badge').classList.toggle('hidden', unread <= 0 || sheetMode === 'chat');
+  if (sheetMode === 'players') $('sheet-players').innerHTML = playersSheetHtml(room);
+}
+
+window.sendChat = async () => {
+  const input = $('chat-input');
+  const text = input.value.trim();
+  if (!text || !currentRoomId) return;
+  input.value = '';
+  await updateDoc(doc(db, "rooms", currentRoomId), {
+    chat: arrayUnion({ uid: currentUser.uid, name: currentUser.displayNameCustom, text, ts: Date.now() })
+  });
+};
+
+// ---------- Навигация ----------
+function leaveToMenu() {
+  if (unsubscribeRoom) unsubscribeRoom();
+  unsubscribeRoom = null; currentRoomId = null; lastRoom = null;
+  closeSheet();
+  showScreen('screen-menu');
+}
+window.leaveToMenu = leaveToMenu;
+
+function showScreen(id) {
+  ['screen-auth','screen-profile','screen-select','screen-menu','screen-room','screen-word-input','screen-game','screen-bunker']
+    .forEach(s => $(s).classList.add('hidden'));
+  $(id).classList.remove('hidden');
+  const inRoom = ['screen-room','screen-word-input','screen-game','screen-bunker'].includes(id);
+  $('bar').classList.toggle('hidden', !inRoom);
+  if (!inRoom) closeSheet();
+  if (id !== 'screen-game') $('win-btn').classList.add('hidden');
+}
+window.showScreen = showScreen;
+</script>
+</body>
+</html>
