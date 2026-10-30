@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Крокодил Арек — онлайн игра для компании</title>
+<meta name="description" content="Крокодил Арек — онлайн игра на GitHub Pages: создайте комнату, позовите друзей по коду и угадывайте слова. От 3 до 10 игроков.">
+<meta name="keywords" content="Крокодил Арек, Крокодил Арек гитхаб, Крокодил гитхаб, Арек гитхаб, крокодил онлайн игра">
+<meta name="application-name" content="Крокодил Арек">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Крокодил Арек">
+<meta property="og:title" content="Крокодил Арек — онлайн игра для компании">
+<meta property="og:description" content="Создай комнату, позови друзей по коду и угадывай слова вживую.">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","name":"Крокодил Арек","alternateName":["Крокодил Арек гитхаб","Крокодил гитхаб","Арек гитхаб"],"inLanguage":"ru"}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#C3D4C8; --surface:#EAF1E8; --surface-2:#D9E5D8;
+  --primary:#1F8A5B; --primary-dark:#176B47; --primary-light:#C9E7D6;
+  --accent:#F29B2C; --accent-light:#F8DDB0;
+  --text:#18241D; --muted:#586A5F; --border:#AFC3B3;
+  --danger:#DC4545; --danger-bg:#F3D3D3; --blue:#2B6CB0; --purple:#6A3FC8; --teal:#0E8A87;
+  --radius:16px; --radius-sm:11px;
+  --shadow:0 8px 26px -8px rgba(23,80,52,.35); --shadow-sm:0 2px 10px rgba(23,80,52,.14);
+  --font-display:'Manrope',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:var(--font-body)}
+h1,h2,h3,.btn,.badge,.brand{font-family:var(--font-display)}
+body{background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:110px;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+.hidden{display:none!important}
+
+/* ===== анимации ===== */
+@keyframes screenIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes rise{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes pop{0%{opacity:0;transform:scale(.82)}60%{transform:scale(1.05)}100%{opacity:1;transform:scale(1)}}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-9px) rotate(4deg)}}
+@keyframes pulseOrange{0%,100%{box-shadow:0 6px 18px rgba(242,155,44,.5),0 0 0 0 rgba(242,155,44,.55)}70%{box-shadow:0 6px 18px rgba(242,155,44,.5),0 0 0 14px rgba(242,155,44,0)}}
+@keyframes badgePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+@keyframes stripMove{0%{background-position:0 0}100%{background-position:200% 0}}
+@keyframes slideL{from{transform:translateX(-100%)}to{transform:none}}
+@keyframes slideLOut{from{transform:none}to{transform:translateX(-100%)}}
+@keyframes sheetUp{from{transform:translateY(100%);opacity:.6}to{transform:none;opacity:1}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes fadeOut{from{opacity:1}to{opacity:0}}
+@keyframes toastIn{from{opacity:0;transform:translateY(-16px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px) scale(.95)}to{opacity:1;transform:none}}
+@keyframes barIn{from{transform:translateY(100%)}to{transform:none}}
+@keyframes ring{0%{transform:scale(.95);opacity:.9}100%{transform:scale(1.75);opacity:0}}
+@keyframes cardIn{0%{opacity:0;transform:translateY(50px) scale(.6) rotate(-5deg)}100%{opacity:1;transform:none}}
+@keyframes cardOut{to{opacity:0;transform:translateY(-26px) scale(1.06)}}
+@keyframes confetti{0%{transform:translate(0,-20px) rotate(0)}100%{transform:translate(var(--dx),108vh) rotate(720deg)}}
+@keyframes dotBounce{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+
+.strip{position:fixed;top:0;left:0;right:0;height:5px;z-index:1200;background:linear-gradient(90deg,#1F8A5B,#F29B2C,#2B6CB0,#6A3FC8,#1F8A5B);background-size:200% 100%;animation:stripMove 6s linear infinite}
+.container{max-width:560px;margin:0 auto;padding:22px 16px;animation:screenIn .45s cubic-bezier(.2,.9,.3,1) both}
+.center{min-height:100vh;display:flex;flex-direction:column;justify-content:center}
+.card{background:var(--surface);border-radius:22px;padding:20px;box-shadow:var(--shadow);margin-bottom:14px}
+.muted{color:var(--muted)}
+h1{font-size:32px;font-weight:800;margin-bottom:6px;color:var(--primary-dark)}
+h2{font-size:21px;font-weight:800;margin-bottom:10px}
+h3{font-size:15px;font-weight:700}
+.logo{font-size:72px;text-align:center;margin-bottom:10px;animation:float 3.2s ease-in-out infinite;display:block}
+.lead{font-size:15px;line-height:1.5;color:var(--muted);margin-bottom:20px}
+
+/* ===== кнопки ===== */
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:var(--radius);background:linear-gradient(135deg,#27A872,#1A7A50);color:#fff;font-size:15px;font-weight:700;cursor:pointer;text-align:center;margin-top:10px;box-shadow:0 6px 16px -6px rgba(23,107,71,.6);transition:transform .15s,opacity .15s,box-shadow .2s,filter .2s}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.07)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.5;cursor:default;transform:none;filter:none}
+.btn-blue{background:linear-gradient(135deg,#3F86DB,#2A5DA6);box-shadow:0 6px 16px -6px rgba(43,93,166,.65)}
+.btn-purple{background:linear-gradient(135deg,#8B5CF0,#6A3FC8);box-shadow:0 6px 16px -6px rgba(106,63,200,.65)}
+.btn-teal{background:linear-gradient(135deg,#1BB8B2,#0E8A87);box-shadow:0 6px 16px -6px rgba(14,138,135,.65)}
+.btn-orange,.btn-accent{background:linear-gradient(135deg,#F8AB44,#E2851A);box-shadow:0 6px 16px -6px rgba(226,133,26,.7)}
+.btn-danger,.btn-no{background:linear-gradient(135deg,#E85A5A,#BF3333);box-shadow:0 6px 16px -6px rgba(191,51,51,.65)}
+.btn-slate{background:linear-gradient(135deg,#72869A,#4A5A66);box-shadow:0 6px 16px -6px rgba(74,90,102,.6)}
+.btn-yes{background:linear-gradient(135deg,#27A872,#1A7A50)}
+.btn-soft,.btn-ghost{background:#CBDACD;color:#3C4A41;box-shadow:none;margin-top:8px}
+.btn-soft-red{background:var(--danger-bg);color:#B33636;box-shadow:none;margin-top:8px}
+.btn-sm{padding:9px;font-size:13px}
+.btn-row{display:flex;gap:10px}
+.btn-row .btn{margin-top:10px}
+label{display:block;font-size:13px;font-weight:700;margin:6px 0 6px;color:var(--muted)}
+input{width:100%;padding:13px 14px;margin-bottom:10px;border:2px solid var(--border);border-radius:var(--radius-sm);font-size:16px;background:#F4F8F2;outline:none;color:var(--text);transition:border-color .2s,box-shadow .2s,transform .2s}
+input:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(31,138,91,.2);transform:translateY(-1px)}
+.hello{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.avatar{width:44px;height:44px;border-radius:50%;background:var(--primary-light);color:var(--primary-dark);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;font-family:var(--font-display)}
+.avatar.xl{width:62px;height:62px;font-size:28px}
+
+/* ===== комната ===== */
+.room-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-right:128px}
+.code-chip{background:linear-gradient(135deg,#2B6CB0,#6A3FC8);color:#fff;font-weight:800;padding:8px 13px;border-radius:12px;font-size:14px;cursor:pointer;font-family:var(--font-display);word-break:break-all;box-shadow:0 4px 12px -4px rgba(43,108,176,.6);transition:transform .15s}
+.code-chip:active{transform:scale(.95)}
+.theme{background:linear-gradient(135deg,#F8AB44,#E2851A);color:#fff;border-radius:22px;padding:16px 18px;margin:12px 0;box-shadow:0 10px 24px -8px rgba(226,133,26,.7);animation:pop .5s both}
+.theme b{display:block;font-size:12px;color:rgba(255,255,255,.88);text-transform:uppercase;letter-spacing:.12em;margin-bottom:3px;font-family:var(--font-display)}
+.theme span{display:block;font-size:26px;font-weight:800;line-height:1.15;font-family:var(--font-display);word-break:break-word;text-shadow:0 2px 6px rgba(120,60,0,.25)}
+#roomScreen.playing .theme span{font-size:32px}
+#roomScreen.playing .theme{padding:20px 20px}
+.player{display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:var(--radius);padding:12px;margin-bottom:8px;box-shadow:var(--shadow-sm);border:2px solid transparent;transition:transform .2s,background .3s,border-color .3s}
+.player.turn{border-color:var(--accent);background:var(--accent-light)}
+.player.done{opacity:.85}
+.player .info{flex:1;min-width:0}
+.player .name{font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;word-break:break-word}
+.player .word{font-size:14px;margin-top:3px;color:var(--muted)}
+.player .word b{color:var(--text);font-size:16px}
+.rise{animation:rise .5s cubic-bezier(.2,.9,.3,1) both;animation-delay:calc(var(--i,0) * 70ms)}
+.pop{animation:pop .5s cubic-bezier(.2,1.2,.4,1) both}
+.still .rise,.still .pop{animation:none}
+.badge{font-size:11px;font-weight:800;padding:3px 8px;border-radius:99px;background:var(--primary-light);color:var(--primary-dark)}
+.badge.turn{background:var(--accent);color:#fff;animation:badgePulse 1.2s ease-in-out infinite}
+.badge.place{background:#FFE9A0;color:#8A6200;font-size:12px}
+.event{background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--muted);margin:10px 0;text-align:center;animation:rise .4s both}
+.hero{display:flex;align-items:center;gap:14px;background:var(--surface);border-radius:24px;padding:18px;margin:14px 0;box-shadow:var(--shadow);border:3px solid transparent}
+.hero.mine{background:linear-gradient(135deg,#FBE3B5,#F7C873);border-color:var(--accent)}
+.hero-txt{min-width:0;flex:1}
+.hero-label{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#B26A0B;font-family:var(--font-display)}
+.hero-name{font-size:24px;font-weight:800;font-family:var(--font-display);word-break:break-word;line-height:1.2}
+.hero-word{font-size:15px;color:var(--muted);margin-top:4px}
+.hero-word b{font-size:20px;color:var(--text);font-family:var(--font-display)}
+.mini-row{display:flex;justify-content:center;gap:8px;margin-top:70px}
+.btn-mini{border:none;background:#CBDACD;color:#5A6A60;font-size:12px;font-weight:700;padding:7px 13px;border-radius:99px;cursor:pointer;width:auto;transition:transform .15s}
+.btn-mini:active{transform:scale(.94)}
+.btn-mini.danger{background:var(--danger-bg);color:#B33636}
+.turn-info{text-align:center;font-weight:800;font-size:17px;margin:12px 0;font-family:var(--font-display)}
+
+/* ===== нижняя панель и плавающие кнопки ===== */
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:1000;background:var(--surface);padding:12px 16px calc(12px + env(safe-area-inset-bottom));box-shadow:0 -6px 24px rgba(0,0,0,.14);animation:barIn .35s cubic-bezier(.2,.9,.3,1) both}
+.bar .btn-row{max-width:560px;margin:0 auto}
+.bar .btn{margin-top:0;padding:16px}
+.fab{position:fixed;top:16px;right:14px;z-index:1100;width:auto;padding:10px 14px;margin:0;font-size:13px;border-radius:99px;background:linear-gradient(135deg,#F8AB44,#E2851A);animation:pulseOrange 2s infinite}
+.chat-fab,.side-fab{position:fixed;bottom:20px;z-index:1050;width:54px;height:54px;border-radius:50%;border:none;color:#fff;font-size:24px;cursor:pointer;transition:bottom .35s cubic-bezier(.2,.9,.3,1),transform .15s;animation:pop .5s both}
+.chat-fab:active,.side-fab:active{transform:scale(.9)}
+body.bar-on .chat-fab,body.bar-on .side-fab{bottom:96px}
+.chat-fab{right:14px;background:linear-gradient(135deg,#3F86DB,#2A5DA6);box-shadow:0 6px 18px rgba(43,108,176,.5)}
+.side-fab{left:14px;background:linear-gradient(135deg,#8B5CF0,#6A3FC8);box-shadow:0 6px 18px rgba(106,63,200,.5)}
+.chat-fab .dot{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;padding:0 5px;border-radius:99px;background:var(--danger);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);animation:dotBounce .8s ease-in-out infinite}
+
+/* ===== панель игроков (слева) ===== */
+.drawer{position:fixed;inset:0;z-index:1400;display:flex}
+.drawer .scrim{position:absolute;inset:0;background:rgba(10,30,20,.5);animation:fade .25s both}
+.drawer .sheet{position:relative;width:min(350px,88vw);height:100%;background:var(--bg);padding:16px;overflow-y:auto;box-shadow:10px 0 40px rgba(0,0,0,.3);animation:slideL .3s cubic-bezier(.2,.9,.3,1) both}
+.drawer.closing .sheet{animation:slideLOut .23s ease-in both}
+.drawer.closing .scrim{animation:fadeOut .23s both}
+.sheet-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sheet-top h3{font-size:18px}
+
+/* ===== чат ===== */
+.chat{position:fixed;inset:0;z-index:1500;background:var(--bg);display:flex;flex-direction:column;height:100dvh;animation:sheetUp .35s cubic-bezier(.2,.9,.3,1) both}
+.chat-top{display:flex;align-items:center;justify-content:space-between;padding:16px;background:linear-gradient(135deg,#3F86DB,#2A5DA6);color:#fff;box-shadow:var(--shadow-sm)}
+.chat-close{border:none;background:rgba(255,255,255,.28);color:inherit;width:38px;height:38px;border-radius:50%;font-size:16px;cursor:pointer;transition:transform .15s}
+.chat-close:active{transform:scale(.9)}
+.sheet .chat-close{background:#CBDACD;color:var(--text)}
+.chat-hint{font-size:12px;color:var(--muted);text-align:center;padding:6px 10px 0}
+.chat-msgs{flex:1;overflow-y:auto;padding:14px 14px 8px;display:flex;flex-direction:column;gap:8px;max-width:560px;width:100%;margin:0 auto}
+.msg{position:relative;cursor:pointer;align-self:flex-start;max-width:82%;background:var(--surface);border-radius:16px 16px 16px 4px;padding:8px 12px;box-shadow:var(--shadow-sm);animation:msgIn .3s cubic-bezier(.2,.9,.3,1) both;transition:box-shadow .2s}
+.msg.mine{align-self:flex-end;background:#B7E0C7;border-radius:16px 16px 4px 16px}
+.msg.picking{box-shadow:0 0 0 2px var(--blue),var(--shadow-sm)}
+.msg .who{font-size:12px;font-weight:800;color:var(--primary-dark);margin-bottom:2px;font-family:var(--font-display)}
+.msg .txt{font-size:15px;line-height:1.35;word-break:break-word;white-space:pre-wrap}
+.rxs{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.rxs:empty{display:none}
+.rx{display:inline-flex;align-items:center;gap:4px;border:1.5px solid var(--border);background:#F4F8F2;border-radius:99px;padding:2px 8px;font-size:14px;cursor:pointer;animation:pop .3s both;transition:transform .15s}
+.rx span{font-size:12px;font-weight:800;color:var(--muted);font-family:var(--font-display)}
+.rx.mine{background:#CFE4F8;border-color:var(--blue)}
+.rx.mine span{color:var(--blue)}
+.rx:active{transform:scale(.88)}
+.picker{display:none;gap:2px;margin-top:6px;padding:4px;background:#F4F8F2;border-radius:99px;box-shadow:var(--shadow-sm);width:max-content}
+.msg.picking .picker{display:flex;animation:pop .25s both}
+.pk{border:none;background:transparent;font-size:22px;width:38px;height:38px;border-radius:50%;cursor:pointer;transition:transform .15s,background .2s}
+.pk:hover{transform:scale(1.25)}
+.pk:active{transform:scale(.85)}
+.pk.on{background:#CFE4F8}
+.chat-empty{text-align:center;color:var(--muted);font-size:14px;margin:auto}
+.chat-input{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:var(--surface);max-width:none}
+.chat-input input{margin:0;flex:1}
+.chat-input .btn{width:56px;margin:0;padding:0;font-size:18px}
+
+/* ===== экран «ход игрока» ===== */
+.turn-ov{position:fixed;inset:0;z-index:2500;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at 50% 40%,rgba(31,138,91,.94),rgba(14,52,36,.97));backdrop-filter:blur(6px);animation:fade .35s both;cursor:pointer}
+.turn-ov.out{animation:fadeOut .4s both}
+.turn-card{text-align:center;color:#fff;max-width:360px;width:100%;animation:cardIn .7s cubic-bezier(.2,1.25,.35,1) both}
+.turn-ov.out .turn-card{animation:cardOut .4s both}
+.tc-label{font-weight:800;letter-spacing:.2em;text-transform:uppercase;font-size:13px;opacity:.88;font-family:var(--font-display);animation:rise .5s .15s both}
+.tc-avatar{position:relative;width:120px;height:120px;border-radius:50%;margin:20px auto;background:#fff;color:var(--primary-dark);font-weight:800;font-size:54px;font-family:var(--font-display);display:flex;align-items:center;justify-content:center;animation:pop .6s .2s both}
+.tc-avatar::after{content:'';position:absolute;inset:0;border-radius:50%;border:3px solid rgba(255,255,255,.85);animation:ring 1.3s .5s infinite ease-out}
+.tc-name{font-size:34px;font-weight:800;font-family:var(--font-display);word-break:break-word;animation:rise .5s .35s both}
+.tc-word{margin-top:20px;background:rgba(255,255,255,.16);border:2px solid rgba(255,255,255,.38);border-radius:20px;padding:14px 18px;animation:rise .5s .5s both}
+.tc-word small{display:block;font-size:12px;opacity:.85;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.tc-word b{font-size:32px;font-family:var(--font-display);word-break:break-word}
+.tc-word.secret b{font-size:20px}
+
+/* ===== модалка, тосты, конфетти ===== */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;animation:fade .2s both}
+.modal .box{background:var(--surface);border-radius:22px;padding:22px;max-width:340px;width:100%;animation:pop .35s cubic-bezier(.2,1.2,.4,1) both}
+.modal p{font-size:16px;font-weight:700;line-height:1.4;text-align:center;margin-bottom:6px}
+#toasts{position:fixed;top:16px;left:0;right:0;z-index:3000;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+.toast{background:#18241D;color:#fff;padding:11px 16px;border-radius:12px;font-size:14px;max-width:90%;box-shadow:var(--shadow);animation:toastIn .3s cubic-bezier(.2,.9,.3,1) both}
+.toast.error{background:var(--danger)}
+.toast.success{background:var(--primary)}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:2800;overflow:hidden}
+.confetti i{position:absolute;top:-10px;width:9px;height:14px;border-radius:2px;animation:confetti 2.4s linear forwards}
+
+/* ===== выбор игры и Бункер ===== */
+.gsel{display:flex;gap:10px;margin-bottom:12px}
+.gopt{flex:1;border:3px solid transparent;background:var(--surface);border-radius:var(--radius);padding:14px 8px;text-align:center;cursor:pointer;box-shadow:var(--shadow-sm);font-family:var(--font-display);font-weight:800;font-size:15px;color:var(--text);transition:transform .15s,border-color .2s,background .2s}
+.gopt span{display:block;font-size:36px;margin-bottom:4px}
+.gopt:active{transform:scale(.96)}
+.gopt.on{border-color:var(--primary);background:var(--primary-light)}
+#roomScreen.bunker .theme{display:none}
+.bk{background:linear-gradient(135deg,#3A4A44,#1E2A25);color:#fff;border-radius:22px;padding:16px 18px;margin:12px 0;box-shadow:var(--shadow);animation:pop .5s both}
+.bk h3{font-size:11px;text-transform:uppercase;letter-spacing:.12em;opacity:.7;margin:12px 0 3px;font-family:var(--font-display)}
+.bk h3:first-child{margin-top:0}
+.bk p{font-size:14px;line-height:1.4}
+.bk .cap{display:inline-block;margin-top:10px;background:rgba(255,255,255,.16);border-radius:99px;padding:4px 11px;font-size:12px;font-weight:800;font-family:var(--font-display)}
+.fx{background:var(--accent-light);color:#6B4300;border:1.5px solid var(--accent);border-radius:11px;padding:6px 10px;font-size:12px;line-height:1.35;margin-top:6px}
+.fx i{opacity:.75}
+.bk .fx{background:rgba(242,155,44,.22);color:#FFE9C2}
+.phase{border-radius:var(--radius);padding:12px 14px;margin:12px 0;font-weight:700;font-size:14px;text-align:center;background:var(--surface-2);animation:rise .4s both}
+.phase.me{background:var(--accent-light);border:2px solid var(--accent)}
+.phase.vote{background:var(--danger-bg)}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.bcard{background:var(--surface);border:2.5px solid var(--border);border-radius:14px;padding:9px 10px;cursor:pointer;text-align:left;font-size:13px;line-height:1.3;min-height:84px;color:var(--text);transition:transform .15s,border-color .2s,box-shadow .2s}
+.bcard small{display:block;font-weight:800;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;font-family:var(--font-display)}
+.bcard.open{background:var(--primary-light);border-color:var(--primary)}
+.bcard.sel{border-color:var(--accent);box-shadow:0 0 0 3px rgba(242,155,44,.4);transform:translateY(-2px)}
+.bcard .eye{float:right;font-size:12px}
+.acard{background:var(--surface);border-radius:14px;padding:11px 12px;margin-bottom:8px;font-size:13px;line-height:1.4;box-shadow:var(--shadow-sm);border-left:5px solid var(--purple)}
+.acard.used{opacity:.55;border-left-color:var(--border)}
+.acard .btn{margin-top:8px}
+.chip{display:block;background:#F4F8F2;border-radius:9px;padding:4px 8px;font-size:12px;margin-top:4px;line-height:1.3}
+.chip b{color:var(--muted);font-size:11px}
+.player.out{opacity:.6}
+.player.voted{border-color:var(--danger);background:var(--danger-bg);cursor:pointer}
+.player[data-a=vote]{cursor:pointer}
+.sec{margin:16px 0 6px}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="strip"></div>
+<div id="toasts"></div>
+
+<!-- Вход -->
+<section id="loginScreen" class="container center hidden">
+  <span class="logo">🐊</span>
+  <h1 style="text-align:center">Крокодил Арек</h1>
+  <p class="lead" style="text-align:center">Две игры для компании: «Крокодил» и «Бункер». Создай комнату, позови друзей по коду. От 3 до 10 игроков.</p>
+  <button class="btn btn-blue" id="googleBtn">Войти через Google</button>
+</section>
+
+<!-- Имя -->
+<section id="nameScreen" class="container center hidden">
+  <div class="card">
+    <h2>Как тебя зовут?</h2>
+    <p class="lead" style="margin-bottom:12px">Это имя увидят все игроки.</p>
+    <input id="nameInput" maxlength="20" placeholder="Твоё имя" autocomplete="off">
+    <button class="btn btn-teal" id="saveNameBtn">Сохранить</button>
+    <button class="btn btn-soft hidden" id="cancelNameBtn">Отмена</button>
+  </div>
+</section>
+
+<!-- Меню -->
+<section id="menuScreen" class="container hidden">
+  <div class="card">
+    <div class="hello">
+      <div class="avatar" id="menuAvatar"></div>
+      <div><h3 id="menuName"></h3><span class="muted" style="font-size:13px">Твой профиль</span></div>
+    </div>
+    <button class="btn btn-purple btn-sm" data-a="changeName" style="margin-top:0">✏️ Сменить имя</button>
+  </div>
+  <h3 style="margin:4px 2px 8px">Выбери игру</h3>
+  <div class="gsel">
+    <button class="gopt" data-a="pickGame" data-g="croc"><span>🐊</span>Крокодил</button>
+    <button class="gopt" data-a="pickGame" data-g="bunker"><span>🏚️</span>Бункер</button>
+  </div>
+  <button class="btn" id="toCreateBtn" data-a="toCreate">🎲 Создать комнату</button>
+  <button class="btn btn-blue" data-a="toJoin">🔑 Войти по коду</button>
+  <button class="btn btn-soft-red" data-a="logout" style="margin-top:18px">Выйти из аккаунта</button>
+</section>
+
+<!-- Создание -->
+<section id="createScreen" class="container hidden">
+  <div class="card">
+    <h2 id="createTitle">Новая комната</h2>
+    <label>Код команды (по нему зайдут друзья)</label>
+    <input id="cCode" maxlength="20" placeholder="Например: друзья2026" autocomplete="off">
+    <div id="themeWrap"><label>Общая тема игры</label>
+    <input id="cTheme" maxlength="60" placeholder="Например: животные, фильмы, еда" autocomplete="off"></div>
+    <p class="muted" style="font-size:13px">До 10 игроков. Начать можно, когда зашли минимум 3.</p>
+    <button class="btn" id="createBtn">Создать</button>
+    <button class="btn btn-soft" data-a="toMenu">Назад</button>
+  </div>
+</section>
+
+<!-- Вход по коду -->
+<section id="joinScreen" class="container hidden">
+  <div class="card">
+    <h2>Вход в комнату</h2>
+    <label>Код команды</label>
+    <input id="jCode" maxlength="20" placeholder="Введи код" autocomplete="off">
+    <button class="btn btn-blue" id="joinBtn">Войти</button>
+    <button class="btn btn-soft" data-a="toMenu">Назад</button>
+  </div>
+</section>
+
+<!-- Комната -->
+<section id="roomScreen" class="container hidden">
+  <div class="room-head">
+    <div class="code-chip" data-a="copyCode" title="Нажми, чтобы скопировать">🔑 <span id="roomCode"></span></div>
+    <span class="badge" id="roomCount"></span>
+  </div>
+  <div class="theme"><b>Тема</b><span id="roomTheme"></span></div>
+  <div id="roomBody"></div>
+</section>
+
+<button class="btn fab hidden" id="winFab" data-a="win">🏆 Я выиграл</button>
+<div class="bar hidden" id="turnBar">
+  <div class="btn-row">
+    <button class="btn btn-yes" data-a="guessed">✅ Угадал</button>
+    <button class="btn btn-no" data-a="notGuessed">❌ Не угадал</button>
+  </div>
+</div>
+
+<!-- кнопка списка игроков (слева) -->
+<button class="side-fab hidden" id="playersFab" data-a="openPlayers" title="Игроки и слова">👥</button>
+<div class="drawer hidden" id="playersPanel">
+  <div class="scrim" data-a="closePlayers"></div>
+  <div class="sheet">
+    <div class="sheet-top"><h3 id="plTitle">👥 Игроки и слова</h3><button class="chat-close" data-a="closePlayers">✕</button></div>
+    <div id="playersList"></div>
+  </div>
+</div>
+
+<button class="chat-fab hidden" id="chatFab" data-a="openChat">💬<span class="dot hidden" id="chatDot"></span></button>
+<div class="chat hidden" id="chatPanel">
+  <div class="chat-top"><h3>💬 Чат комнаты</h3><button class="chat-close" data-a="closeChat">✕</button></div>
+  <div class="chat-hint">Нажми на сообщение, чтобы поставить реакцию</div>
+  <div class="chat-msgs" id="chatMsgs"></div>
+  <div class="chat-input"><input id="chatInput" maxlength="300" placeholder="Сообщение…" autocomplete="off"><button class="btn" data-a="sendChat">➤</button></div>
+</div>
+
+<!-- экран смены хода -->
+<div class="turn-ov hidden" id="turnOv" data-a="closeTurn"><div class="turn-card" id="turnCard"></div></div>
+
+<div class="modal hidden" id="pickModal"><div class="box" id="pickBox"></div></div>
+<div class="modal hidden" id="modal"><div class="box"><p id="modalText"></p>
+  <div class="btn-row"><button class="btn btn-slate" id="modalNo">Нет</button><button class="btn" id="modalYes">Да</button></div></div></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, runTransaction, deleteField, collection, addDoc, getDocs, writeBatch, query, orderBy, limitToLast, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA1yt8qsvTZ2dYajtWXShhutaGBouCMP5w",
+  authDomain: "poputka-2ab91.firebaseapp.com",
+  projectId: "poputka-2ab91",
+  storageBucket: "poputka-2ab91.firebasestorage.app",
+  messagingSenderId: "261108566922",
+  appId: "1:261108566922:web:ba7649d9dba2b709e91673",
+  measurementId: "G-W3TQ8ZW128"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const MAX_PLAYERS = 10, MIN_PLAYERS = 3;
+const REACTIONS = ['👍', '🔥', '❤️', '💩', '👎'];
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const roomRef = (code) => doc(db, 'rooms', code);
+
+let user = null, myName = '', roomCode = null, room = null, unsub = null, assigning = false, bodyKey = '';
+let lastSig = '', lastTurn = null, lastStatus = null;
+
+/* ===== Утилиты ===== */
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type; el.textContent = msg;
+  $('toasts').appendChild(el);
+  setTimeout(() => { el.style.transition = 'opacity .25s, transform .25s'; el.style.opacity = '0'; el.style.transform = 'translateY(-10px)'; setTimeout(() => el.remove(), 260); }, 3200);
+}
+function setBar(on) {
+  $('turnBar').classList.toggle('hidden', !on);
+  document.body.classList.toggle('bar-on', on);
+}
+function setPlayingUI(on) {
+  $('playersFab').classList.toggle('hidden', !on);
+  if (!on) { $('playersPanel').classList.add('hidden'); $('playersPanel').classList.remove('closing'); }
+}
+function show(id) {
+  ['loginScreen','nameScreen','menuScreen','createScreen','joinScreen','roomScreen'].forEach(s => $(s).classList.toggle('hidden', s !== id));
+  if (id !== 'roomScreen') { $('winFab').classList.add('hidden'); setBar(false); setPlayingUI(false); }
+  $('chatFab').classList.toggle('hidden', id !== 'roomScreen');
+  window.scrollTo(0, 0);
+}
+function ask(text) {
+  return new Promise(res => {
+    $('modalText').textContent = text; $('modal').classList.remove('hidden');
+    const done = (v) => { $('modal').classList.add('hidden'); $('modalYes').onclick = $('modalNo').onclick = null; res(v); };
+    $('modalYes').onclick = () => done(true); $('modalNo').onclick = () => done(false);
+  });
+}
+const normCode = (s) => s.trim().toLowerCase().replace(/[\s\/\\.#?]+/g, '');
+const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const placeLabel = (n) => ['🥇', '🥈', '🥉'][n - 1] || `${n} место`;
+const initial = (n) => (n || '?').trim().charAt(0).toUpperCase();
+function avStyle(name) {
+  let h = 0; for (const c of (name || '?')) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return `background:hsl(${h} 60% 80%);color:hsl(${h} 55% 25%)`;
+}
+function errMsg(e) { return (e && e.message && !String(e.message).startsWith('Firebase')) ? e.message : 'Ошибка связи. Попробуй ещё раз.'; }
+function confetti() {
+  const c = document.createElement('div'); c.className = 'confetti';
+  const cols = ['#F29B2C', '#1F8A5B', '#2B6CB0', '#6A3FC8', '#DC4545', '#F7D046'];
+  for (let i = 0; i < 48; i++) {
+    const s = document.createElement('i');
+    s.style.left = Math.random() * 100 + '%';
+    s.style.background = cols[i % cols.length];
+    s.style.animationDelay = (Math.random() * .6) + 's';
+    s.style.animationDuration = (1.8 + Math.random() * 1.4) + 's';
+    s.style.setProperty('--dx', (Math.random() * 160 - 80) + 'px');
+    c.appendChild(s);
+  }
+  document.body.appendChild(c); setTimeout(() => c.remove(), 4200);
+}
+
+/* ===== Экран смены хода ===== */
+let ovTimer = null;
+function showTurn(id, p) {
+  const me = id === user.uid, ov = $('turnOv');
+  $('turnCard').innerHTML =
+    `<div class="tc-label">${me ? '👉 Твой ход' : 'Ход игрока'}</div>` +
+    `<div class="tc-avatar">${esc(initial(p.name))}</div>` +
+    `<div class="tc-name">${esc(p.name)}</div>` +
+    (me ? `<div class="tc-word secret"><small>Твоё слово</small><b>🙈 Скрыто — угадывай!</b></div>`
+        : `<div class="tc-word"><small>Его слово</small><b>${esc(p.word)}</b></div>`);
+  ov.classList.remove('hidden', 'out');
+  clearTimeout(ovTimer); ovTimer = setTimeout(closeTurn, 3000);
+  if (me) { try { navigator.vibrate && navigator.vibrate([80, 40, 80]); } catch (e) {} }
+}
+function closeTurn() {
+  clearTimeout(ovTimer);
+  const ov = $('turnOv'); if (ov.classList.contains('hidden')) return;
+  ov.classList.add('out');
+  setTimeout(() => { if (ov.classList.contains('out')) { ov.classList.add('hidden'); ov.classList.remove('out'); } }, 400);
+}
+
+/* ===== Авторизация ===== */
+$('googleBtn').onclick = () => signInWithPopup(auth, new GoogleAuthProvider()).catch(e => toast('Ошибка входа: ' + e.message, 'error'));
+
+onAuthStateChanged(auth, async (u) => {
+  user = u;
+  if (!u) { leaveLocal(); show('loginScreen'); return; }
+  try {
+    const s = await getDoc(doc(db, 'users', u.uid));
+    if (s.exists() && s.data().name) { myName = s.data().name; }
+    else { openNameScreen(false); return; }
+  } catch (e) { toast('Не удалось загрузить профиль. Проверь правила Firestore.', 'error'); show('menuScreen'); return; }
+  showMenu();
+  let saved = null; try { saved = localStorage.getItem('croc_room'); } catch (e) {}
+  if (saved) enterRoom(saved, true);
+});
+
+function showMenu() {
+  paintGame();
+  $('menuName').textContent = myName;
+  $('menuAvatar').textContent = initial(myName); $('menuAvatar').style.cssText = avStyle(myName);
+  show('menuScreen');
+}
+function openNameScreen(canCancel) {
+  $('nameInput').value = myName || user.displayName || '';
+  $('cancelNameBtn').classList.toggle('hidden', !canCancel);
+  show('nameScreen');
+}
+$('saveNameBtn').onclick = async () => {
+  const n = $('nameInput').value.trim().replace(/\s+/g, ' ');
+  if (n.length < 2) return toast('Имя должно быть минимум 2 символа', 'error');
+  try {
+    await setDoc(doc(db, 'users', user.uid), { name: n });
+    myName = n; showMenu();
+    let saved = null; try { saved = localStorage.getItem('croc_room'); } catch (e) {}
+    if (saved && !room) enterRoom(saved, true);
+  } catch (e) { toast('Не удалось сохранить имя', 'error'); }
+};
+$('cancelNameBtn').onclick = showMenu;
+
+/* ===== Создание и вход в комнату ===== */
+$('createBtn').onclick = async () => {
+  const isB = selGame === 'bunker';
+  const code = normCode($('cCode').value), theme = isB ? 'Бункер' : $('cTheme').value.trim();
+  if (code.length < 3) return toast('Код: минимум 3 символа (без пробелов)', 'error');
+  if (!isB && theme.length < 2) return toast('Укажи общую тему игры', 'error');
+  $('createBtn').disabled = true;
+  try {
+    const ref = roomRef(code);
+    await runTransaction(db, async (tx) => {
+      const s = await tx.get(ref);
+      if (s.exists()) throw new Error('Такой код уже занят, придумай другой');
+      tx.set(ref, {
+        code, theme, game: selGame, hostId: user.uid, status: 'lobby', createdAt: Date.now(),
+        players: { [user.uid]: { name: myName, joinedAt: Date.now(), word: null, place: null } },
+        words: {}, order: [], turn: null, placeCount: 0, lastEvent: '',
+        expireAt: Timestamp.fromMillis(Date.now() + 24 * 3600 * 1000)
+      });
+    });
+    $('cCode').value = ''; $('cTheme').value = '';
+    enterRoom(code);
+  } catch (e) { toast(errMsg(e), 'error'); }
+  $('createBtn').disabled = false;
+};
+
+$('joinBtn').onclick = async () => {
+  const code = normCode($('jCode').value);
+  if (!code) return toast('Введи код', 'error');
+  $('joinBtn').disabled = true;
+  try {
+    const ref = roomRef(code);
+    await runTransaction(db, async (tx) => {
+      const s = await tx.get(ref);
+      if (!s.exists()) throw new Error('Комната с таким кодом не найдена');
+      const d = s.data();
+      if (d.players[user.uid]) return;
+      if (d.status !== 'lobby') throw new Error('Игра уже началась');
+      if (Object.keys(d.players).length >= MAX_PLAYERS) throw new Error('Комната заполнена (10/10)');
+      tx.update(ref, { ['players.' + user.uid]: { name: myName, joinedAt: Date.now(), word: null, place: null } });
+    });
+    $('jCode').value = '';
+    enterRoom(code);
+  } catch (e) { toast(errMsg(e), 'error'); }
+  $('joinBtn').disabled = false;
+};
+
+function enterRoom(code, silent) {
+  if (unsub) unsub();
+  roomCode = code; room = null; bodyKey = ''; lastSig = ''; lastTurn = null; lastStatus = null;
+  try { localStorage.setItem('croc_room', code); } catch (e) {}
+  startChat(code);
+  let first = true;
+  unsub = onSnapshot(roomRef(code), (snap) => {
+    if (!snap.exists()) { leaveLocal(); showMenu(); if (!(first && silent)) toast('Комната закрыта или не найдена'); first = false; return; }
+    const d = snap.data();
+    if (!d.players[user.uid]) { leaveLocal(); showMenu(); toast('Тебя нет в этой комнате'); first = false; return; }
+    first = false; room = d; render();
+  }, () => { leaveLocal(); showMenu(); toast('Нет доступа к комнате', 'error'); });
+}
+
+function leaveLocal() {
+  if (unsub) { unsub(); unsub = null; }
+  stopChat();
+  room = null; roomCode = null; bodyKey = ''; assigning = false; lastSig = ''; lastTurn = null; lastStatus = null;
+  try { localStorage.removeItem('croc_room'); } catch (e) {}
+  $('winFab').classList.add('hidden'); setBar(false); setPlayingUI(false);
+  clearTimeout(ovTimer); $('turnOv').classList.add('hidden'); $('turnOv').classList.remove('out');
+  $('roomScreen').classList.remove('playing');
+  if (user && !$('roomScreen').classList.contains('hidden')) showMenu();
+}
+
+/* ===== Игровая логика (транзакции) ===== */
+const playersSorted = (r) => Object.entries(r.players).map(([id, p]) => ({ id, ...p })).sort((a, b) => a.joinedAt - b.joinedAt);
+
+async function startGame() {
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = roomRef(roomCode), s = await tx.get(ref), d = s.data();
+      if (d.status !== 'lobby') return;
+      const list = playersSorted(d);
+      if (list.length < MIN_PLAYERS) throw new Error('Нужно минимум 3 игрока');
+      const upd = { status: 'words', words: {}, order: list.map(p => p.id), turn: null, placeCount: 0, lastEvent: '' };
+      list.forEach(p => { upd['players.' + p.id + '.word'] = null; upd['players.' + p.id + '.place'] = null; });
+      tx.update(ref, upd);
+    });
+  } catch (e) { toast(errMsg(e), 'error'); }
+}
+
+function derange(ids) {
+  for (let t = 0; t < 300; t++) {
+    const p = shuffle(ids.slice());
+    if (p.every((x, i) => x !== ids[i])) return p;
+  }
+  return ids.slice(1).concat(ids[0]);
+}
+
+async function assignWords() {
+  if (assigning) return; assigning = true;
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = roomRef(roomCode), s = await tx.get(ref), d = s.data();
+      if (d.status !== 'words') return;
+      const ids = d.order;
+      if (!ids.every(id => d.words && d.words[id])) return;
+      const authors = derange(ids);           // authors[i] — чьё слово достаётся игроку ids[i]
+      const upd = { status: 'playing', turn: ids[Math.floor(Math.random() * ids.length)], lastEvent: 'Игра началась! Задавайте вопросы вживую.' };
+      ids.forEach((id, i) => { upd['players.' + id + '.word'] = d.words[authors[i]]; upd['players.' + id + '.author'] = authors[i]; });
+      tx.update(ref, upd);
+    });
+  } catch (e) { toast(errMsg(e), 'error'); }
+  assigning = false;
+}
+
+async function submitWord() {
+  const w = $('wordInput').value.trim().replace(/\s+/g, ' ');
+  if (!w) return toast('Введи слово', 'error');
+  try { await updateDoc(roomRef(roomCode), { ['words.' + user.uid]: w }); }
+  catch (e) { toast('Не удалось отправить слово', 'error'); }
+}
+
+function nextActive(order, players, fromId) {
+  const n = order.length, i = order.indexOf(fromId);
+  for (let k = 1; k <= n; k++) {
+    const id = order[(i + k) % n];
+    if (players[id].place == null) return id;
+  }
+  return null;
+}
+
+async function turnAction(kind) {
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = roomRef(roomCode), s = await tx.get(ref), d = s.data();
+      if (d.status !== 'playing' || d.turn !== user.uid) return;
+      if (kind === 'guessed') {
+        tx.update(ref, { lastEvent: `✅ ${myName} угадал и задаёт ещё вопрос` });
+      } else {
+        const nxt = nextActive(d.order, d.players, user.uid);
+        tx.update(ref, { turn: nxt, lastEvent: `❌ ${myName} не угадал — ход переходит дальше` });
+      }
+    });
+  } catch (e) { toast(errMsg(e), 'error'); }
+}
+
+async function iWon() {
+  if (!(await ask('Ты точно угадал своё слово?'))) return;
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = roomRef(roomCode), s = await tx.get(ref), d = s.data();
+      if (d.status !== 'playing' || d.players[user.uid].place != null) return;
+      const place = (d.placeCount || 0) + 1;
+      const players = JSON.parse(JSON.stringify(d.players));
+      players[user.uid].place = place;
+      const remaining = d.order.filter(id => players[id].place == null);
+      const upd = { ['players.' + user.uid + '.place']: place, placeCount: place, lastEvent: `🏆 ${myName} угадал слово и занял ${place} место!` };
+      if (d.turn === user.uid) upd.turn = remaining.length ? nextActive(d.order, players, user.uid) : null;
+      if (remaining.length <= 1) {
+        upd.status = 'finished'; upd.turn = null;
+        if (remaining.length === 1) { upd['players.' + remaining[0] + '.place'] = place + 1; upd.placeCount = place + 1; }
+      }
+      tx.update(ref, upd);
+    });
+    confetti();
+  } catch (e) { toast(errMsg(e), 'error'); }
+}
+
+async function toLobby() {
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = roomRef(roomCode), s = await tx.get(ref), d = s.data();
+      const players = {};
+      Object.entries(d.players).forEach(([id, p]) => { players[id] = { name: p.name, joinedAt: p.joinedAt, word: null, place: null }; });
+      tx.update(ref, { players, status: 'lobby', words: {}, order: [], turn: null, placeCount: 0, lastEvent: '', bunker: null, phase: null, round: 0, revealed: [], votes: {} });
+    });
+  } catch (e) { toast(errMsg(e), 'error'); }
+}
+
+async function finishGame() {
+  if (!(await ask('Завершить игру для всех?'))) return;
+  try { await updateDoc(roomRef(roomCode), { status: 'finished', turn: null, lastEvent: 'Игра завершена ведущим' }); }
+  catch (e) { toast('Ошибка', 'error'); }
+}
+
+async function wipeRoom(code) {
+  // сначала сообщения, потом сама комната — в базе не остаётся ничего
+  const snap = await getDocs(collection(db, 'rooms', code, 'messages'));
+  for (let i = 0; i < snap.docs.length; i += 450) {
+    const b = writeBatch(db);
+    snap.docs.slice(i, i + 450).forEach(d => b.delete(d.ref));
+    await b.commit();
+  }
+  await deleteDoc(roomRef(code));
+}
+
+async function leaveRoom() {
+  const code = roomCode, r = room;
+  const alone = r && Object.keys(r.players).length === 1 && r.hostId === user.uid;
+  const lobbyGuest = r && r.status === 'lobby' && r.hostId !== user.uid;
+  if (lobbyGuest) { try { await updateDoc(roomRef(code), { ['players.' + user.uid]: deleteField() }); } catch (e) {} }
+  leaveLocal(); showMenu();
+  if (alone) { try { await wipeRoom(code); } catch (e) {} }   // последний игрок ушёл — комната удаляется
+}
+async function closeRoom() {
+  if (!(await ask('Закрыть комнату? Комната и весь чат будут удалены.'))) return;
+  try { await wipeRoom(roomCode); } catch (e) { toast('Не удалось закрыть комнату', 'error'); }
+}
+
+/* ===== Чат и реакции ===== */
+let chatUnsub = null, chatOpen = false, chatInit = false, unread = 0, msgs = {};
+function updateDot() { const d = $('chatDot'); d.textContent = unread > 9 ? '9+' : unread; d.classList.toggle('hidden', unread === 0); }
+function chatBottom() { const b = $('chatMsgs'); b.scrollTop = b.scrollHeight; }
+
+function paintRx(id) {
+  const o = msgs[id]; if (!o) return;
+  const rx = o.data.reactions || {}, counts = {};
+  Object.values(rx).forEach(e => { counts[e] = (counts[e] || 0) + 1; });
+  const mine = rx[user.uid];
+  o.el.querySelector('.rxs').innerHTML = REACTIONS.filter(e => counts[e])
+    .map(e => `<button class="rx ${mine === e ? 'mine' : ''}" data-a="react" data-id="${id}" data-e="${e}">${e}<span>${counts[e]}</span></button>`).join('');
+  o.el.querySelector('.picker').innerHTML = REACTIONS
+    .map(e => `<button class="pk ${mine === e ? 'on' : ''}" data-a="react" data-id="${id}" data-e="${e}">${e}</button>`).join('');
+}
+function appendMsg(id, m) {
+  const box = $('chatMsgs');
+  const empty = box.querySelector('.chat-empty'); if (empty) empty.remove();
+  const el = document.createElement('div');
+  const mine = m.uid === user.uid;
+  el.className = 'msg' + (mine ? ' mine' : ''); el.dataset.a = 'togglePick';
+  el.innerHTML = (mine ? '' : `<div class="who">${esc(m.name)}</div>`) + `<div class="txt">${esc(m.text)}</div><div class="rxs"></div><div class="picker"></div>`;
+  box.appendChild(el);
+  msgs[id] = { el, data: m }; paintRx(id);
+  while (box.children.length > 150) box.removeChild(box.firstChild);
+}
+function startChat(code) {
+  stopChat(); chatInit = false; unread = 0; msgs = {}; updateDot();
+  $('chatMsgs').innerHTML = '<div class="chat-empty">Сообщений пока нет.<br>Напиши первым 👋</div>';
+  const q = query(collection(db, 'rooms', code, 'messages'), orderBy('t'), limitToLast(100));
+  chatUnsub = onSnapshot(q, (snap) => {
+    let added = false;
+    snap.docChanges().forEach(ch => {
+      const id = ch.doc.id;
+      if (ch.type === 'added') {
+        const m = ch.doc.data(); appendMsg(id, m); added = true;
+        if (chatInit && !chatOpen && m.uid !== user.uid) unread++;
+      } else if (ch.type === 'modified') {
+        if (msgs[id]) { msgs[id].data = ch.doc.data(); paintRx(id); }
+      } else if (ch.type === 'removed') {
+        if (msgs[id]) { msgs[id].el.remove(); delete msgs[id]; }
+      }
+    });
+    chatInit = true; updateDot(); if (chatOpen && added) chatBottom();
+  }, () => {});
+}
+function stopChat() {
+  if (chatUnsub) { chatUnsub(); chatUnsub = null; }
+  chatOpen = false; unread = 0; $('chatPanel').classList.add('hidden');
+}
+async function sendChat() {
+  const inp = $('chatInput'), text = inp.value.trim();
+  if (!text || !roomCode) return;
+  inp.value = ''; inp.focus();
+  try {
+    await addDoc(collection(db, 'rooms', roomCode, 'messages'), {
+      uid: user.uid, name: myName, text: text.slice(0, 300), t: Date.now(),
+      expireAt: Timestamp.fromMillis(Date.now() + 24 * 3600 * 1000)
+    });
+  } catch (e) { toast('Сообщение не отправлено', 'error'); }
+}
+function togglePick(el) {
+  const was = el.classList.contains('picking');
+  document.querySelectorAll('.msg.picking').forEach(x => x.classList.remove('picking'));
+  if (!was) { el.classList.add('picking'); setTimeout(() => el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 30); }
+}
+async function react(el) {
+  const id = el.dataset.id, e = el.dataset.e, o = msgs[id];
+  if (!o || !roomCode) return;
+  const cur = (o.data.reactions || {})[user.uid];
+  o.el.classList.remove('picking');
+  try {
+    await updateDoc(doc(db, 'rooms', roomCode, 'messages', id), { ['reactions.' + user.uid]: cur === e ? deleteField() : e });
+  } catch (err) { toast('Не удалось поставить реакцию', 'error'); }
+}
+
+/* ===== Отрисовка комнаты ===== */
+function playerCard(p, r, opts = {}) {
+  const isTurn = r.status === 'playing' && r.turn === p.id && p.place == null;
+  let word = '';
+  if (r.status === 'playing' || r.status === 'finished') {
+    if (p.word) {
+      if (p.id === user.uid && p.place == null && r.status === 'playing') word = '<div class="word">🙈 Своё слово не видно</div>';
+      else word = `<div class="word">Слово: <b>${esc(p.word)}</b></div>`;
+    }
+  }
+  const badges = [
+    r.hostId === p.id ? '<span class="badge">👑 ведущий</span>' : '',
+    isTurn ? '<span class="badge turn">ХОД</span>' : '',
+    p.place != null ? `<span class="badge place">${placeLabel(p.place)}</span>` : ''
+  ].join('');
+  const anim = opts.i != null ? `rise" style="--i:${opts.i}` : '';
+  return `<div class="player ${isTurn ? 'turn' : ''} ${p.place != null ? 'done' : ''} ${anim}">
+    <div class="avatar" style="${avStyle(p.name)}">${esc(initial(p.name))}</div>
+    <div class="info"><div class="name">${esc(p.name)}${p.id === user.uid ? ' <span class="muted" style="font-weight:500">(ты)</span>' : ''} ${badges}</div>${word}${opts.extra || ''}</div>
+  </div>`;
+}
+
+function render() {
+  const r = room, isHost = r.hostId === user.uid, me = r.players[user.uid];
+  const list = playersSorted(r);
+  const sig = [r.status, r.turn, list.length, r.placeCount, r.words ? Object.keys(r.words).length : 0].join('|');
+  const still = sig === lastSig; lastSig = sig;
+  const prevStatus = lastStatus; lastStatus = r.status;
+  if (r.status !== 'playing') lastTurn = null;
+
+  $('roomCode').textContent = r.code; $('roomTheme').textContent = r.theme;
+  $('roomCount').textContent = `👥 ${list.length}/${MAX_PLAYERS}`;
+  show('roomScreen');
+  $('roomScreen').classList.toggle('playing', r.status === 'playing');
+  $('winFab').classList.add('hidden'); setBar(false); setPlayingUI(r.status === 'playing');
+  const body = $('roomBody');
+  body.classList.toggle('still', still);
+  $('roomScreen').classList.toggle('bunker', r.game === 'bunker');
+  $('plTitle').textContent = r.game === 'bunker' ? '👥 Игроки и карточки' : '👥 Игроки и слова';
+  if (r.game === 'bunker') { renderBunker(r, list, me, isHost, still); return; }
+
+  if (r.status === 'lobby') {
+    bodyKey = 'lobby';
+    body.innerHTML = `<h3 style="margin:6px 0 10px">Игроки</h3>${list.map((p, i) => playerCard(p, r, { i })).join('')}
+      <p class="muted" style="font-size:13px;text-align:center;margin:10px 0">Отправь друзьям код <b>${esc(r.code)}</b></p>
+      ${isHost ? `<button class="btn" data-a="start" ${list.length < MIN_PLAYERS ? 'disabled' : ''}>${list.length < MIN_PLAYERS ? 'Нужно минимум 3 игрока' : '▶ Начать игру'}</button>
+      <button class="btn btn-soft-red" data-a="closeRoom">Закрыть комнату</button>`
+      : '<p class="muted" style="text-align:center;margin:14px 0">Ждём, пока ведущий начнёт игру…</p>'}
+      <button class="btn btn-soft" data-a="leave">Выйти из комнаты</button>`;
+    return;
+  }
+
+  if (r.status === 'words') {
+    const submitted = !!(r.words && r.words[user.uid]);
+    const cnt = list.filter(p => r.words && r.words[p.id]).length;
+    const status = `<h3 style="margin:14px 0 10px">Загадали слово: ${cnt}/${list.length}</h3>` +
+      list.map((p, i) => playerCard(p, r, { i, extra: `<div class="word">${r.words && r.words[p.id] ? '✅ готово' : '⏳ думает…'}</div>` })).join('');
+    const key = 'words-' + submitted;
+    if (bodyKey !== key) {
+      bodyKey = key;
+      body.innerHTML = (submitted
+        ? `<div class="card pop"><h2>Слово отправлено ✅</h2><p class="muted">Ждём остальных игроков…</p></div>`
+        : `<div class="card pop"><h2>Загадай слово</h2><p class="muted" style="font-size:14px;margin-bottom:12px">Слово по теме «${esc(r.theme)}». Оно случайно достанется другому игроку — ты его увидишь, а он нет.</p>
+            <input id="wordInput" maxlength="40" placeholder="Твоё слово" autocomplete="off">
+            <button class="btn btn-teal" data-a="sendWord">Отправить</button></div>`)
+        + '<div id="wordsList"></div>'
+        + (isHost ? '<button class="btn btn-soft" data-a="toLobby">Отменить и вернуться в лобби</button>' : '');
+    }
+    $('wordsList').innerHTML = status;
+    if (isHost && cnt === list.length) assignWords();
+    return;
+  }
+
+  if (r.status === 'playing') {
+    bodyKey = 'playing';
+    const turnP = r.players[r.turn];
+    const myTurn = r.turn === user.uid && me.place == null;
+    const sorted = list.slice().sort((a, b) => (r.order.indexOf(a.id)) - (r.order.indexOf(b.id)));
+    if (r.turn && r.turn !== lastTurn) { lastTurn = r.turn; if (turnP) showTurn(r.turn, turnP); }
+
+    const hero = turnP ? `<div class="hero pop ${myTurn ? 'mine' : ''}">
+        <div class="avatar xl" style="${avStyle(turnP.name)}">${esc(initial(turnP.name))}</div>
+        <div class="hero-txt">
+          <span class="hero-label">${myTurn ? '👉 Твой ход!' : 'Сейчас ходит'}</span>
+          <div class="hero-name">${esc(turnP.name)}</div>
+          <div class="hero-word">${r.turn === user.uid ? '🙈 Своё слово не видно' : 'Слово: <b>' + esc(turnP.word) + '</b>'}</div>
+        </div></div>` : '';
+
+    body.innerHTML = `${r.lastEvent ? `<div class="event">${esc(r.lastEvent)}</div>` : ''}
+      ${hero}
+      ${me.place != null ? `<div class="event">Ты занял ${placeLabel(me.place)} и теперь наблюдаешь</div>` : ''}
+      <p class="muted" style="text-align:center;font-size:13px;margin-top:10px">Все игроки и их слова — кнопка 👥 слева внизу</p>
+      <div class="mini-row">
+        <button class="btn-mini" data-a="leave">🚪 Выйти</button>
+        ${isHost ? '<button class="btn-mini danger" data-a="finish">Завершить игру</button>' : ''}
+      </div>`;
+    $('playersList').innerHTML = sorted.map(p => playerCard(p, r)).join('');
+    if (me.place == null) $('winFab').classList.remove('hidden');
+    if (myTurn) setBar(true);
+    return;
+  }
+
+  if (r.status === 'finished') {
+    bodyKey = 'finished';
+    if (prevStatus !== 'finished') confetti();
+    const placed = list.filter(p => p.place != null).sort((a, b) => a.place - b.place);
+    const rest = list.filter(p => p.place == null);
+    let i = 0;
+    body.innerHTML = `${r.lastEvent ? `<div class="event">${esc(r.lastEvent)}</div>` : ''}
+      <h2 style="margin:10px 0">🏁 Итоги</h2>
+      ${placed.map(p => playerCard(p, r, { i: i++ })).join('')}
+      ${rest.map(p => playerCard(p, r, { i: i++ })).join('')}
+      ${isHost ? '<button class="btn btn-orange" data-a="toLobby">🔄 Играть снова</button><button class="btn btn-soft-red" data-a="closeRoom">Закрыть комнату</button>'
+      : '<p class="muted" style="text-align:center;margin:14px 0">Ведущий может запустить новую игру</p>'}
+      <button class="btn btn-soft" data-a="leave">Выйти в меню</button>`;
+  }
+}
+
+/* ===== Выбор игры ===== */
+const GAMES = { croc: { name: 'Крокодил' }, bunker: { name: 'Бункер' } };
+let selGame = 'croc'; try { if (localStorage.getItem('game_sel') === 'bunker') selGame = 'bunker'; } catch (e) {}
+function paintGame() {
+  document.querySelectorAll('.gopt').forEach(b => b.classList.toggle('on', b.dataset.g === selGame));
+  $('toCreateBtn').textContent = '🎲 Создать комнату · ' + GAMES[selGame].name;
+}
+function openCreate() {
+  $('createTitle').textContent = 'Новая комната — ' + GAMES[selGame].name;
+  $('themeWrap').classList.toggle('hidden', selGame === 'bunker');
+  show('createScreen');
+}
+
+/* ===== БУНКЕР: данные и раздача карточек ===== */
+let bData = null, selCard = null, pickIdx = null;
+async function loadBunkerData() {
+  if (bData) return bData;
+  const r = await fetch('bunker-data.json', { cache: 'no-cache' });
+  if (!r.ok) throw new Error('bunker-data.json не найден');
+  bData = await r.json(); return bData;
+}
+const ruYears = (n) => (n % 10 === 1 && n % 100 !== 11) ? 'год' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)) ? 'года' : 'лет';
+const T = (a) => a.map(x => x.text);
+const CARD_DEFS = [
+  ['profession', '💼', 'Профессия', d => T(d.professions)],
+  ['bio', '🧬', 'Биология', d => d.biological_characteristics.map(x => `${x.sex}, ${x.age} ${ruYears(x.age)}`)],
+  ['health', '🩺', 'Здоровье', d => T(d.health)],
+  ['hobby', '🎨', 'Хобби', d => T(d.hobbies)],
+  ['phobia', '😱', 'Фобия', d => T(d.phobias)],
+  ['baggage', '🎒', 'Багаж', d => T(d.baggage)],
+  ['fact', '📌', 'Факт', d => T(d.facts)],
+  ['special', '⭐', 'Особое условие', d => T(d.special_conditions)]
+];
+function dealBunker(data, ids) {
+  const cards = {}, actions = {};
+  ids.forEach(id => { cards[id] = []; actions[id] = []; });
+  CARD_DEFS.forEach(([k, icon, label, get]) => {
+    const pool = shuffle(get(data).slice());                 // у каждого игрока своя уникальная карточка
+    ids.forEach((id, i) => cards[id].push({ k, icon, label, text: pool[i % pool.length], open: false }));
+  });
+  const ap = shuffle(T(data.action_cards).slice()); let n = 0;
+  ids.forEach(id => { for (let j = 0; j < 2; j++) actions[id].push({ text: ap[n++ % ap.length], used: false }); });
+  const pick = (a) => a[Math.floor(Math.random() * a.length)].text;
+  return { cards, actions, bunker: { catastrophe: pick(data.catastrophes), description: pick(data.bunker_descriptions), threat: pick(data.threats), effects: [] } };
+}
+
+async function startBunker() {
+  let data;
+  try { data = await loadBunkerData(); }
+  catch (e) { return toast('Не удалось загрузить bunker-data.json — он должен лежать рядом с index.html', 'error'); }
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = roomRef(roomCode), d = (await tx.get(ref)).data();
+      if (d.status !== 'lobby') return;
+      const list = playersSorted(d);
+      if (list.length < MIN_PLAYERS) throw new Error('Нужно минимум 3 игрока');
+      const ids = list.map(p => p.id), deal = dealBunker(data, ids);
+      const upd = {
+        status: 'playing', phase: 'reveal', round: 1, order: ids, revealed: [], turn: ids[0], votes: {}, voteTry: 1,
+        capacity: Math.max(1, Math.floor(ids.length / 2)), bunker: deal.bunker,
+        lastEvent: 'Игра началась! По очереди открывайте характеристики.'
+      };
+      ids.forEach(id => { upd['players.' + id + '.cards'] = deal.cards[id]; upd['players.' + id + '.actions'] = deal.actions[id]; upd['players.' + id + '.effects'] = []; upd['players.' + id + '.out'] = false; });
+      tx.update(ref, upd);
+    });
+    selCard = null;
+  } catch (e) { toast(errMsg(e), 'error'); }
+}
+
+async function revealSel() {
+  const idx = selCard; if (idx == null) return;
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = roomRef(roomCode), d = (await tx.get(ref)).data(), me = user.uid;
+      if (d.status !== 'playing' || d.phase !== 'reveal' || d.turn !== me) return;
+      const c = d.players[me].cards[idx]; if (!c || c.open) return;
+      const cards = d.players[me].cards.map((x, i) => i === idx ? { ...x, open: true } : x);
+      const revealed = [...(d.revealed || []), me];
+      const nxt = d.order.find(id => !d.players[id].out && !revealed.includes(id));
+      const upd = { ['players.' + me + '.cards']: cards, revealed, lastEvent: `👁 ${myName} открыл(а): ${c.label} — ${c.text}` };
+      if (nxt) upd.turn = nxt;
+      else { upd.phase = 'vote'; upd.turn = null; upd.votes = {}; upd.voteTry = 1; upd.lastEvent += ' · Все открылись — время голосовать!'; }
+      tx.update(ref, upd);
+    });
+    selCard = null;
+  } catch (e) { toast(errMsg(e), 'error'); }
+}
+
+async function voteFor(el) {
+  const target = el.dataset.id;
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = roomRef(roomCode), d = (await tx.get(ref)).data(), P = d.players;
+      if (d.status !== 'playing' || d.phase !== 'vote' || P[user.uid].out || !P[target] || P[target].out || target === user.uid) return;
+      const votes = { ...(d.votes || {}), [user.uid]: target };
+      const alive = d.order.filter(id => !P[id].out);
+      if (!alive.every(id => votes[id])) { tx.update(ref, { ['votes.' + user.uid]: target }); return; }
+      // все проголосовали — подсчёт
+      const cnt = {}; alive.forEach(id => { cnt[votes[id]] = (cnt[votes[id]] || 0) + 1; });
+      const max = Math.max(...Object.values(cnt)), top = Object.keys(cnt).filter(id => cnt[id] === max);
+      const tally = Object.entries(cnt).sort((a, b) => b[1] - a[1]).map(([id, n]) => `${P[id].name} — ${n}`).join(', ');
+      if (top.length > 1) {
+        tx.update(ref, { votes: {}, voteTry: (d.voteTry || 1) + 1, lastEvent: `🤝 Ничья (${tally}). Никого не выгнали — голосование повторяется` });
+        return;
+      }
+      const kicked = top[0], left = alive.filter(id => id !== kicked);
+      const upd = { votes: {}, ['players.' + kicked + '.out']: true, ['players.' + kicked + '.cards']: P[kicked].cards.map(c => ({ ...c, open: true })) };
+      if (left.length <= d.capacity) {
+        Object.assign(upd, { status: 'finished', phase: null, turn: null, lastEvent: `🚪 ${P[kicked].name} исключён(а) (${tally}). Бункер укомплектован!` });
+      } else {
+        Object.assign(upd, { round: (d.round || 1) + 1, revealed: [], phase: 'reveal', turn: left[0], voteTry: 1, lastEvent: `🚪 ${P[kicked].name} исключён(а) (${tally}). Начинается новый раунд.` });
+      }
+      tx.update(ref, upd);
+    });
+  } catch (e) { toast(errMsg(e), 'error'); }
+}
+
+function openPick(el) {
+  const a = room.players[user.uid].actions[+el.dataset.i]; if (!a || a.used) return;
+  pickIdx = +el.dataset.i;
+  const alive = room.order.filter(id => !room.players[id].out);
+  $('pickBox').innerHTML = `<p>На кого применить?</p><p class="muted" style="font-size:13px;font-weight:500">${esc(a.text)}</p>` +
+    alive.map(id => `<button class="btn btn-soft" data-a="pickTarget" data-t="${id}">${esc(room.players[id].name)}${id === user.uid ? ' (ты)' : ''}</button>`).join('') +
+    `<button class="btn btn-purple" data-a="pickTarget" data-t="bunker">🏚️ На бункер</button><button class="btn btn-slate" data-a="closePick">Отмена</button>`;
+  $('pickModal').classList.remove('hidden');
+}
+const closePick = () => { $('pickModal').classList.add('hidden'); pickIdx = null; };
+
+async function pickTarget(el) {
+  const t = el.dataset.t, idx = pickIdx; closePick();
+  if (idx == null) return;
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = roomRef(roomCode), d = (await tx.get(ref)).data(), me = d.players[user.uid];
+      if (d.status !== 'playing' || me.out) return;
+      const a = me.actions[idx]; if (!a || a.used) return;
+      const fx = { text: a.text, by: myName, round: d.round || 1 };
+      const upd = { ['players.' + user.uid + '.actions']: me.actions.map((x, i) => i === idx ? { ...x, used: true } : x) };
+      const title = a.text.split(':')[0];
+      if (t === 'bunker') {
+        upd['bunker.effects'] = [...((d.bunker && d.bunker.effects) || []), fx];
+        upd.lastEvent = `🃏 ${myName} применил(а) «${title}» на бункер`;
+      } else {
+        if (!d.players[t] || d.players[t].out) throw new Error('Игрок уже выбыл');
+        upd['players.' + t + '.effects'] = [...(d.players[t].effects || []), fx];
+        upd.lastEvent = `🃏 ${myName} применил(а) «${title}» на игрока ${d.players[t].name}`;
+      }
+      tx.update(ref, upd);
+    });
+  } catch (e) { toast(errMsg(e), 'error'); }
+}
+
+function showTurnB(id, p) {
+  const me = id === user.uid, ov = $('turnOv');
+  $('turnCard').innerHTML =
+    `<div class="tc-label">${me ? '👉 Твой ход' : 'Открывает характеристику'}</div>` +
+    `<div class="tc-avatar">${esc(initial(p.name))}</div><div class="tc-name">${esc(p.name)}</div>` +
+    `<div class="tc-word secret"><small>Раунд ${room.round || 1}</small><b>${me ? 'Выбери карточку и нажми «Показать всем»' : 'Ждём, что он покажет…'}</b></div>`;
+  ov.classList.remove('hidden', 'out');
+  clearTimeout(ovTimer); ovTimer = setTimeout(closeTurn, 2600);
+  if (me) { try { navigator.vibrate && navigator.vibrate([80, 40, 80]); } catch (e) {} }
+}
+
+/* ===== БУНКЕР: отрисовка ===== */
+const fxList = (arr) => (arr || []).map(e => `<div class="fx">🃏 ${esc(e.text)} <i>— ${esc(e.by)}</i></div>`).join('');
+
+function bunkerCard(r) {
+  const b = r.bunker || {}, alive = r.order.filter(id => !r.players[id].out).length;
+  return `<div class="bk"><h3>☄️ Катастрофа</h3><p>${esc(b.catastrophe)}</p><h3>🏚️ Бункер</h3><p>${esc(b.description)}</p><h3>⚠️ Угроза</h3><p>${esc(b.threat)}</p>
+    <span class="cap">🛏 Мест: ${r.capacity} · В игре: ${alive}</span>${b.effects && b.effects.length ? `<h3>🃏 Условия на бункере</h3>${fxList(b.effects)}` : ''}</div>`;
+}
+
+function bPlayerRow(p, r, all) {
+  const cards = p.cards || [], open = cards.filter(c => c.open || all);
+  const isTurn = r.status === 'playing' && r.phase === 'reveal' && r.turn === p.id && !p.out;
+  const badges = [r.hostId === p.id ? '<span class="badge">👑</span>' : '', isTurn ? '<span class="badge turn">ХОД</span>' : '',
+    p.out ? '<span class="badge place" style="background:var(--danger-bg);color:#B33636">❌ исключён</span>' : (r.status === 'finished' ? '<span class="badge place">✅ в бункере</span>' : '')].join('');
+  return `<div class="player ${isTurn ? 'turn' : ''} ${p.out ? 'out' : ''}">
+    <div class="avatar" style="${avStyle(p.name)}">${esc(initial(p.name))}</div>
+    <div class="info"><div class="name">${esc(p.name)}${p.id === user.uid ? ' <span class="muted" style="font-weight:500">(ты)</span>' : ''} ${badges}</div>
+    ${open.map(c => `<span class="chip"><b>${c.icon} ${esc(c.label)}:</b> ${esc(c.text)}</span>`).join('')}
+    ${cards.length && cards.length > open.length ? `<span class="chip muted">🔒 закрыто карточек: ${cards.length - open.length}</span>` : ''}
+    ${fxList(p.effects)}</div></div>`;
+}
+
+function renderBunker(r, list, me, isHost, still) {
+  const body = $('roomBody'); setPlayingUI(r.status !== 'lobby');
+  const ev = r.lastEvent ? `<div class="event">${esc(r.lastEvent)}</div>` : '';
+
+  if (r.status === 'lobby') {
+    bodyKey = 'lobby';
+    body.innerHTML = `<div class="card pop"><h2>🏚️ Бункер</h2><p class="muted" style="font-size:14px;line-height:1.45">Каждому игроку случайно раздаются свои карточки. По очереди открывайте характеристики и голосуйте, кого выгнать. Мест в бункере — вдвое меньше, чем игроков.</p></div>
+      <h3 style="margin:6px 0 10px">Игроки</h3>${list.map((p, i) => playerCard(p, r, { i })).join('')}
+      <p class="muted" style="font-size:13px;text-align:center;margin:10px 0">Отправь друзьям код <b>${esc(r.code)}</b></p>
+      ${isHost ? `<button class="btn" data-a="start" ${list.length < MIN_PLAYERS ? 'disabled' : ''}>${list.length < MIN_PLAYERS ? 'Нужно минимум 3 игрока' : '▶ Начать игру'}</button>
+      <button class="btn btn-soft-red" data-a="closeRoom">Закрыть комнату</button>` : '<p class="muted" style="text-align:center;margin:14px 0">Ждём, пока ведущий начнёт игру…</p>'}
+      <button class="btn btn-soft" data-a="leave">Выйти из комнаты</button>`;
+    return;
+  }
+
+  bodyKey = 'bunker';
+  const sorted = list.slice().sort((a, b) => r.order.indexOf(a.id) - r.order.indexOf(b.id));
+  const alive = sorted.filter(p => !p.out), finished = r.status === 'finished';
+  $('playersList').innerHTML = sorted.map(p => bPlayerRow(p, r, finished)).join('');
+
+  if (finished) {
+    body.innerHTML = `${ev}<h2 style="margin:10px 0">🏁 Итоги</h2>${bunkerCard(r)}
+      <h3 class="sec">✅ Попали в бункер</h3>${alive.map(p => bPlayerRow(p, r, true)).join('')}
+      <h3 class="sec">❌ Исключены</h3>${sorted.filter(p => p.out).map(p => bPlayerRow(p, r, true)).join('') || '<p class="muted">Никого</p>'}
+      ${isHost ? '<button class="btn btn-orange" data-a="toLobby">🔄 Играть снова</button><button class="btn btn-soft-red" data-a="closeRoom">Закрыть комнату</button>' : '<p class="muted" style="text-align:center;margin:14px 0">Ведущий может запустить новую игру</p>'}
+      <button class="btn btn-soft" data-a="leave">Выйти в меню</button>`;
+    return;
+  }
+
+  const myTurn = r.phase === 'reveal' && r.turn === user.uid && !me.out;
+  if (r.phase === 'reveal' && r.turn) { if (r.turn !== lastTurn) { lastTurn = r.turn; if (r.players[r.turn]) showTurnB(r.turn, r.players[r.turn]); } } else lastTurn = null;
+
+  let phase = '';
+  if (r.phase === 'reveal') {
+    const t = r.players[r.turn];
+    phase = `<div class="phase ${myTurn ? 'me' : ''}">${myTurn ? '👉 Твой ход: выбери карточку и покажи всем' : `🔄 Раунд ${r.round}: открывает карточку <b>${esc(t ? t.name : '')}</b>`}<br><span class="muted" style="font-size:12px">Открыли: ${(r.revealed || []).length}/${alive.length}</span></div>`;
+  } else {
+    const votes = r.votes || {}, done = alive.filter(p => votes[p.id]).length;
+    phase = `<div class="phase vote">🗳 Голосование${r.voteTry > 1 ? ` (попытка ${r.voteTry})` : ''} · раунд ${r.round}<br><span class="muted" style="font-size:12px">Проголосовали: ${done}/${alive.length}${me.out ? '' : ' · кого выгнать из бункера?'}</span></div>` +
+      (me.out ? '' : alive.filter(p => p.id !== user.uid).map(p => `<div class="player ${votes[user.uid] === p.id ? 'voted' : ''}" data-a="vote" data-id="${p.id}">
+        <div class="avatar" style="${avStyle(p.name)}">${esc(initial(p.name))}</div><div class="info"><div class="name">${esc(p.name)} ${votes[user.uid] === p.id ? '<span class="badge turn">твой голос</span>' : ''}</div></div></div>`).join(''));
+  }
+
+  let mine = '';
+  if (me.out) mine = '<div class="event">❌ Тебя исключили. Ты наблюдаешь — чат и список игроков доступны.</div>';
+  else {
+    const cards = me.cards || [], sc = selCard != null ? cards[selCard] : null;
+    mine = `<h3 class="sec">🎴 Твои карточки</h3><p class="muted" style="font-size:12px">Видишь только ты, пока не покажешь всем</p>
+      <div class="cgrid">${cards.map((c, i) => `<button class="bcard ${c.open ? 'open' : ''} ${selCard === i ? 'sel' : ''}" data-a="selCard" data-i="${i}"><small>${c.icon} ${esc(c.label)}${c.open ? '<span class="eye">👁</span>' : ''}</small>${esc(c.text)}</button>`).join('')}</div>
+      ${myTurn && sc && !sc.open ? `<button class="btn btn-orange pop" data-a="revealSel">👁 Показать всем: ${esc(sc.label)}</button>` : ''}
+      ${me.effects && me.effects.length ? `<h3 class="sec">На тебе применено</h3>${fxList(me.effects)}` : ''}
+      <h3 class="sec">🃏 Карты действий</h3>
+      ${(me.actions || []).map((a, i) => `<div class="acard ${a.used ? 'used' : ''}">${esc(a.text)}${a.used ? '<br><small class="muted">✔ использована</small>' : `<button class="btn btn-purple btn-sm" data-a="useAction" data-i="${i}">Применить на игрока или бункер</button>`}</div>`).join('')}`;
+  }
+
+  body.innerHTML = `${ev}${bunkerCard(r)}${phase}${mine}
+    <p class="muted" style="text-align:center;font-size:13px;margin-top:14px">Все игроки и их открытые карточки — кнопка 👥 слева внизу</p>
+    <div class="mini-row" style="margin-top:20px"><button class="btn-mini" data-a="leave">🚪 Выйти</button>${isHost ? '<button class="btn-mini danger" data-a="finish">Завершить игру</button>' : ''}</div>`;
+}
+
+/* ===== Клики ===== */
+function closePlayers() {
+  const p = $('playersPanel'); if (p.classList.contains('hidden')) return;
+  p.classList.add('closing');
+  setTimeout(() => { if (p.classList.contains('closing')) { p.classList.add('hidden'); p.classList.remove('closing'); } }, 230);
+}
+const actions = {
+  toCreate: openCreate,
+  pickGame: (el) => { selGame = el.dataset.g; try { localStorage.setItem('game_sel', selGame); } catch (e) {} paintGame(); },
+  selCard: (el) => { selCard = selCard === +el.dataset.i ? null : +el.dataset.i; if (room) render(); },
+  revealSel, vote: voteFor, useAction: openPick, pickTarget, closePick,
+  toJoin: () => show('joinScreen'),
+  toMenu: () => showMenu(),
+  changeName: () => openNameScreen(true),
+  logout: () => signOut(auth),
+  copyCode: async () => { try { await navigator.clipboard.writeText(roomCode); toast('Код скопирован', 'success'); } catch (e) { toast('Код: ' + roomCode); } },
+  start: () => (room && room.game === 'bunker') ? startBunker() : startGame(), sendWord: submitWord, guessed: () => turnAction('guessed'), notGuessed: () => turnAction('notGuessed'),
+  openChat: () => { chatOpen = true; unread = 0; updateDot(); $('chatPanel').classList.remove('hidden'); chatBottom(); },
+  closeChat: () => { chatOpen = false; $('chatPanel').classList.add('hidden'); },
+  openPlayers: () => { $('playersPanel').classList.remove('hidden', 'closing'); },
+  closePlayers,
+  closeTurn,
+  togglePick, react,
+  sendChat,
+  win: iWon, toLobby: () => toLobby(), finish: finishGame, leave: leaveRoom, closeRoom
+};
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-a]');
+  if (el && actions[el.dataset.a]) actions[el.dataset.a](el);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  if (e.target.id === 'wordInput') submitWord();
+  if (e.target.id === 'jCode') $('joinBtn').click();
+  if (e.target.id === 'chatInput') sendChat();
+});
+</script>
+</body>
+</html>
