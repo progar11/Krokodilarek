@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Бункер — Крокодил Арек</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="strip"></div>
+<div class="modal hidden" id="pickModal"><div class="box" id="pickBox"></div></div>
+
+<script type="module">
+import { $, esc, P, db, runTransaction, toast, errMsg, shuffle, initial, avStyle, avatarHtml, frameImg, nameHtml } from './shared.js';
+import { R, initGame, playersSorted, playerCard, setPlayingUI, openTurnOv } from './room.js';
+
+const MIN = 3, MINTEXT = 'Нужно минимум 3 игрока';
+let bodyKey = '', lastTurn = null;
+
+/* ===== БУНКЕР: данные и раздача карточек ===== */
+let bData = null, selCard = null, pickIdx = null;
+async function loadBunkerData() {
+  if (bData) return bData;
+  const r = await fetch('bunker-data.json', { cache: 'no-cache' });
+  if (!r.ok) throw new Error('bunker-data.json не найден');
+  bData = await r.json(); return bData;
+}
+const ruYears = (n) => (n % 10 === 1 && n % 100 !== 11) ? 'год' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)) ? 'года' : 'лет';
+const T = (a) => a.map(x => x.text);
+const CARD_DEFS = [
+  ['profession', '💼', 'Профессия', d => T(d.professions)],
+  ['bio', '🧬', 'Биология', d => d.biological_characteristics.map(x => `${x.sex}, ${x.age} ${ruYears(x.age)}`)],
+  ['health', '🩺', 'Здоровье', d => T(d.health)],
+  ['hobby', '🎨', 'Хобби', d => T(d.hobbies)],
+  ['phobia', '😱', 'Фобия', d => T(d.phobias)],
+  ['baggage', '🎒', 'Багаж', d => T(d.baggage)],
+  ['fact', '📌', 'Факт', d => T(d.facts)],
+  ['special', '⭐', 'Особое условие', d => T(d.special_conditions)]
+];
+function dealBunker(data, ids) {
+  const cards = {}, actions = {};
+  ids.forEach(id => { cards[id] = []; actions[id] = []; });
+  CARD_DEFS.forEach(([k, icon, label, get]) => {
+    const pool = shuffle(get(data).slice());                 // у каждого игрока своя уникальная карточка
+    ids.forEach((id, i) => cards[id].push({ k, icon, label, text: pool[i % pool.length], open: false }));
+  });
+  const ap = shuffle(T(data.action_cards).slice()); let n = 0;
+  ids.forEach(id => { for (let j = 0; j < 1; j++) actions[id].push({ text: ap[n++ % ap.length], used: false }); });
+  const pick = (a) => a[Math.floor(Math.random() * a.length)].text;
+  return { cards, actions, bunker: { catastrophe: pick(data.catastrophes), description: pick(data.bunker_descriptions), threat: pick(data.threats), effects: [] } };
+}
+
+async function startBunker() {
+  let data;
+  try { data = await loadBunkerData(); }
+  catch (e) { return toast('Не удалось загрузить bunker-data.json — он должен лежать рядом с bunker.html', 'error'); }
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = R.ref(), d = (await tx.get(ref)).data();
+      if (d.status !== 'lobby') return;
+      const list = playersSorted(d);
+      if (list.length < MIN) throw new Error(MINTEXT);
+      const ids = list.map(p => p.id), deal = dealBunker(data, ids);
+      const upd = {
+        status: 'playing', phase: 'reveal', round: 1, order: ids, revealed: [], turn: ids[0], votes: {}, voteTry: 1,
+        capacity: Math.max(1, Math.floor(ids.length / 2)), bunker: deal.bunker,
+        lastEvent: 'Игра началась! По очереди открывайте характеристики.'
+      };
+      ids.forEach(id => { upd['players.' + id + '.cards'] = deal.cards[id]; upd['players.' + id + '.actions'] = deal.actions[id]; upd['players.' + id + '.effects'] = []; upd['players.' + id + '.out'] = false; });
+      tx.update(ref, upd);
+    });
+    selCard = null;
+  } catch (e) { toast(errMsg(e), 'error'); }
+}
+
+async function revealSel() {
+  const idx = selCard; if (idx == null) return;
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = R.ref(), d = (await tx.get(ref)).data(), me = P.user.uid;
+      if (d.status !== 'playing' || d.phase !== 'reveal' || d.turn !== me) return;
+      const c = d.players[me].cards[idx]; if (!c || c.open) return;
+      const cards = d.players[me].cards.map((x, i) => i === idx ? { ...x, open: true } : x);
+      const revealed = [...(d.revealed || []), me];
+      const nxt = d.order.find(id => !d.players[id].out && !revealed.includes(id));
+      const upd = { ['players.' + me + '.cards']: cards, revealed, lastEvent: `👁 ${P.name} открыл(а): ${c.label} — ${c.text}` };
+      if (nxt) upd.turn = nxt;
+      else { upd.phase = 'vote'; upd.turn = null; upd.votes = {}; upd.voteTry = 1; upd.lastEvent += ' · Все открылись — время голосовать!'; }
+      tx.update(ref, upd);
+    });
+    selCard = null;
+  } catch (e) { toast(errMsg(e), 'error'); }
+}
+
+async function voteFor(el) {
+  const target = el.dataset.id;
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = R.ref(), d = (await tx.get(ref)).data(), P = d.players;
+      const skip = target === 'skip';
+      if (d.status !== 'playing' || d.phase !== 'vote' || P[P.user.uid].out || (!skip && (!P[target] || P[target].out || target === P.user.uid))) return;
+      const votes = { ...(d.votes || {}), [P.user.uid]: target };
+      const alive = d.order.filter(id => !P[id].out);
+      if (!alive.every(id => votes[id])) { tx.update(ref, { ['votes.' + P.user.uid]: target }); return; }
+      // все проголосовали — подсчёт
+      const cnt = {}; alive.forEach(id => { cnt[votes[id]] = (cnt[votes[id]] || 0) + 1; });
+      const max = Math.max(...Object.values(cnt)), top = Object.keys(cnt).filter(id => cnt[id] === max);
+      const tally = Object.entries(cnt).sort((a, b) => b[1] - a[1]).map(([id, n]) => `${id === 'skip' ? 'пропуск' : P[id].name} — ${n}`).join(', ');
+      if (top.length > 1 || top[0] === 'skip') {
+        tx.update(ref, { votes: {}, voteTry: (d.voteTry || 1) + 1, lastEvent: `${top.length > 1 ? '🤝 Ничья' : '⏭ Выбран пропуск'} (${tally}). Никого не выгнали — голосование повторяется` });
+        return;
+      }
+      const kicked = top[0], left = alive.filter(id => id !== kicked);
+      const upd = { votes: {}, ['players.' + kicked + '.out']: true, ['players.' + kicked + '.cards']: P[kicked].cards.map(c => ({ ...c, open: true })) };
+      if (left.length <= d.capacity) {
+        Object.assign(upd, { status: 'finished', phase: null, turn: null, lastEvent: `🚪 ${P[kicked].name} исключён(а) (${tally}). Бункер укомплектован!` });
+      } else {
+        Object.assign(upd, { round: (d.round || 1) + 1, revealed: [], phase: 'reveal', turn: left[0], voteTry: 1, lastEvent: `🚪 ${P[kicked].name} исключён(а) (${tally}). Начинается новый раунд.` });
+      }
+      tx.update(ref, upd);
+    });
+  } catch (e) { toast(errMsg(e), 'error'); }
+}
+
+function openPick(el) {
+  const a = R.room.players[P.user.uid].actions[+el.dataset.i]; if (!a || a.used) return;
+  pickIdx = +el.dataset.i;
+  const alive = R.room.order.filter(id => !R.room.players[id].out);
+  $('pickBox').innerHTML = `<p>На кого применить?</p><p class="muted" style="font-size:13px;font-weight:500">${esc(a.text)}</p>` +
+    alive.map(id => `<button class="btn btn-soft" data-a="pickTarget" data-t="${id}">${esc(R.room.players[id].name)}${id === P.user.uid ? ' (ты)' : ''}</button>`).join('') +
+    `<button class="btn btn-purple" data-a="pickTarget" data-t="bunker">🏚️ На бункер</button><button class="btn btn-slate" data-a="closePick">Отмена</button>`;
+  $('pickModal').classList.remove('hidden');
+}
+const closePick = () => { $('pickModal').classList.add('hidden'); pickIdx = null; };
+
+async function pickTarget(el) {
+  const t = el.dataset.t, idx = pickIdx; closePick();
+  if (idx == null) return;
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = R.ref(), d = (await tx.get(ref)).data(), me = d.players[P.user.uid];
+      if (d.status !== 'playing' || me.out) return;
+      const a = me.actions[idx]; if (!a || a.used) return;
+      const fx = { text: a.text, by: P.name, round: d.round || 1 };
+      const upd = { ['players.' + P.user.uid + '.actions']: me.actions.map((x, i) => i === idx ? { ...x, used: true } : x) };
+      const title = a.text.split(':')[0];
+      if (t === 'bunker') {
+        upd['bunker.effects'] = [...((d.bunker && d.bunker.effects) || []), fx];
+        upd.lastEvent = `🃏 ${P.name} применил(а) «${title}» на бункер`;
+      } else {
+        if (!d.players[t] || d.players[t].out) throw new Error('Игрок уже выбыл');
+        upd['players.' + t + '.effects'] = [...(d.players[t].effects || []), fx];
+        upd.lastEvent = `🃏 ${P.name} применил(а) «${title}» на игрока ${d.players[t].name}`;
+      }
+      tx.update(ref, upd);
+    });
+  } catch (e) { toast(errMsg(e), 'error'); }
+}
+
+function showTurnB(id, p) {
+  const me = id === P.user.uid;
+  openTurnOv(
+    `<div class="tc-label">${me ? '👉 Твой ход' : 'Открывает характеристику'}</div>` +
+    `<div class="tc-avatar">${esc(p.avatar || initial(p.name))}${frameImg(p.frame)}</div><div class="tc-name">${esc(p.name)}</div>` +
+    `<div class="tc-word secret"><small>Раунд ${R.room.round || 1}</small><b>${me ? 'Выбери карточку и нажми «Показать всем»' : 'Ждём, что он покажет…'}</b></div>`, 2600, me);
+}
+
+/* ===== БУНКЕР: отрисовка ===== */
+const fxList = (arr) => (arr || []).map(e => `<div class="fx">🃏 ${esc(e.text)} <i>— ${esc(e.by)}</i></div>`).join('');
+
+function bunkerCard(r) {
+  const b = r.bunker || {}, alive = r.order.filter(id => !r.players[id].out).length;
+  return `<div class="bk"><h3>☄️ Катастрофа</h3><p>${esc(b.catastrophe)}</p><h3>🏚️ Бункер</h3><p>${esc(b.description)}</p><h3>⚠️ Угроза</h3><p>${esc(b.threat)}</p>
+    <span class="cap">🛏 Мест: ${r.capacity} · В игре: ${alive}</span>${b.effects && b.effects.length ? `<h3>🃏 Условия на бункере</h3>${fxList(b.effects)}` : ''}</div>`;
+}
+
+function bPlayerRow(p, r, all) {
+  const cards = p.cards || [], open = cards.filter(c => c.open || all);
+  const isTurn = r.status === 'playing' && r.phase === 'reveal' && r.turn === p.id && !p.out;
+  const badges = [r.hostId === p.id ? '<span class="badge">👑</span>' : '', isTurn ? '<span class="badge turn">ХОД</span>' : '',
+    p.out ? '<span class="badge place" style="background:var(--danger-bg);color:#B33636">❌ исключён</span>' : (r.status === 'finished' ? '<span class="badge place">✅ в бункере</span>' : '')].join('');
+  return `<div class="player ${isTurn ? 'turn' : ''} ${p.out ? 'out' : ''}">
+    ${avatarHtml(p)}
+    <div class="info"><div class="name">${nameHtml(p)}${p.id === P.user.uid ? ' <span class="muted" style="font-weight:500">(ты)</span>' : ''} ${badges}</div>
+    ${open.map(c => `<span class="chip"><b>${c.icon} ${esc(c.label)}:</b> ${esc(c.text)}</span>`).join('')}
+    ${cards.length && cards.length > open.length ? `<span class="chip muted">🔒 закрыто карточек: ${cards.length - open.length}</span>` : ''}
+    ${fxList(p.effects)}</div></div>`;
+}
+
+function renderBunker(r, list, me, isHost, still) {
+  const body = $('roomBody'); setPlayingUI(r.status !== 'lobby');
+  const ev = r.lastEvent ? `<div class="event">${esc(r.lastEvent)}</div>` : '';
+
+  if (r.status === 'lobby') {
+    bodyKey = 'lobby';
+    body.innerHTML = `<div class="card pop"><h2>🏚️ Бункер</h2><p class="muted" style="font-size:14px;line-height:1.45">Каждому игроку случайно раздаются свои карточки. По очереди открывайте характеристики и голосуйте, кого выгнать. Мест в бункере — вдвое меньше, чем игроков.</p></div>
+      <h3 style="margin:6px 0 10px">Игроки</h3>${list.map((p, i) => playerCard(p, r, { i })).join('')}
+      <p class="muted" style="font-size:13px;text-align:center;margin:10px 0">Отправь друзьям код <b>${esc(r.code)}</b></p>
+      ${isHost ? `<button class="btn" data-a="start" ${list.length < MIN ? 'disabled' : ''}>${list.length < MIN ? MINTEXT : '▶ Начать игру'}</button>
+      <button class="btn btn-soft-red" data-a="closeRoom">Закрыть комнату</button>` : '<p class="muted" style="text-align:center;margin:14px 0">Ждём, пока ведущий начнёт игру…</p>'}
+      <button class="btn btn-soft" data-a="leave">Выйти из комнаты</button>`;
+    return;
+  }
+
+  bodyKey = 'bunker';
+  const sorted = list.slice().sort((a, b) => r.order.indexOf(a.id) - r.order.indexOf(b.id));
+  const alive = sorted.filter(p => !p.out), finished = r.status === 'finished';
+  $('playersList').innerHTML = sorted.map(p => bPlayerRow(p, r, finished)).join('');
+
+  if (finished) {
+    body.innerHTML = `${ev}<h2 style="margin:10px 0">🏁 Итоги</h2>${bunkerCard(r)}
+      <h3 class="sec">✅ Попали в бункер</h3>${alive.map(p => bPlayerRow(p, r, true)).join('')}
+      <h3 class="sec">❌ Исключены</h3>${sorted.filter(p => p.out).map(p => bPlayerRow(p, r, true)).join('') || '<p class="muted">Никого</p>'}
+      ${isHost ? '<button class="btn btn-orange" data-a="toLobby">🔄 Играть снова</button><button class="btn btn-soft-red" data-a="closeRoom">Закрыть комнату</button>' : '<p class="muted" style="text-align:center;margin:14px 0">Ведущий может запустить новую игру</p>'}
+      <button class="btn btn-soft" data-a="leave">Выйти в меню</button>`;
+    return;
+  }
+
+  const myTurn = r.phase === 'reveal' && r.turn === P.user.uid && !me.out;
+  if (r.phase === 'reveal' && r.turn) { if (r.turn !== lastTurn) { lastTurn = r.turn; if (r.players[r.turn]) showTurnB(r.turn, r.players[r.turn]); } } else lastTurn = null;
+
+  let phase = '';
+  if (r.phase === 'reveal') {
+    const t = r.players[r.turn];
+    phase = `<div class="phase ${myTurn ? 'me' : ''}">${myTurn ? '👉 Твой ход: выбери карточку и покажи всем' : `🔄 Раунд ${r.round}: открывает карточку <b>${esc(t ? t.name : '')}</b>`}<br><span class="muted" style="font-size:12px">Открыли: ${(r.revealed || []).length}/${alive.length}</span></div>`;
+  } else {
+    const votes = r.votes || {}, done = alive.filter(p => votes[p.id]).length;
+    phase = `<div class="phase vote">🗳 Голосование${r.voteTry > 1 ? ` (попытка ${r.voteTry})` : ''} · раунд ${r.round}<br><span class="muted" style="font-size:12px">Проголосовали: ${done}/${alive.length}${me.out ? '' : ' · кого выгнать из бункера?'}</span></div>` +
+      (me.out ? '' : `<div class="player ${votes[P.user.uid] === 'skip' ? 'voted' : ''}" data-a="vote" data-id="skip"><div class="avatar" style="background:#CBDACD">⏭</div><div class="info"><div class="name">Пропустить голосование ${votes[P.user.uid] === 'skip' ? '<span class="badge turn">твой голос</span>' : ''}</div></div></div>` + alive.filter(p => p.id !== P.user.uid).map(p => `<div class="player ${votes[P.user.uid] === p.id ? 'voted' : ''}" data-a="vote" data-id="${p.id}">
+        ${avatarHtml(p)}<div class="info"><div class="name">${esc(p.name)} ${votes[P.user.uid] === p.id ? '<span class="badge turn">твой голос</span>' : ''}</div></div></div>`).join(''));
+  }
+
+  let mine = '';
+  if (me.out) mine = '<div class="event">❌ Тебя исключили. Ты наблюдаешь — чат и список игроков доступны.</div>';
+  else {
+    const cards = me.cards || [], sc = selCard != null ? cards[selCard] : null;
+    mine = `<h3 class="sec">🎴 Твои карточки</h3><p class="muted" style="font-size:12px">Видишь только ты, пока не покажешь всем</p>
+      <div class="cgrid">${cards.map((c, i) => `<button class="bcard ${c.open ? 'open' : ''} ${selCard === i ? 'sel' : ''}" data-a="selCard" data-i="${i}"><small>${c.icon} ${esc(c.label)}${c.open ? '<span class="eye">👁</span>' : ''}</small>${esc(c.text)}</button>`).join('')}</div>
+      ${myTurn && sc && !sc.open ? `<button class="btn btn-orange pop" data-a="revealSel">👁 Показать всем: ${esc(sc.label)}</button>` : ''}
+      ${me.effects && me.effects.length ? `<h3 class="sec">На тебе применено</h3>${fxList(me.effects)}` : ''}
+      <h3 class="sec">🃏 Карта действия</h3>
+      ${(me.actions || []).map((a, i) => `<div class="acard ${a.used ? 'used' : ''}">${esc(a.text)}${a.used ? '<br><small class="muted">✔ использована</small>' : `<button class="btn btn-purple btn-sm" data-a="useAction" data-i="${i}">Применить на игрока или бункер</button>`}</div>`).join('')}`;
+  }
+
+  body.innerHTML = `${ev}${bunkerCard(r)}${phase}${mine}
+    <p class="muted" style="text-align:center;font-size:13px;margin-top:14px">Все игроки и их открытые карточки — кнопка 👥 слева внизу</p>
+    <div class="mini-row" style="margin-top:20px"><button class="btn-mini" data-a="leave">🚪 Выйти</button>${isHost ? '<button class="btn-mini danger" data-a="finish">Завершить игру</button>' : ''}</div>`;
+}
+
+initGame({
+  key: 'bunker', collection: 'bunker_rooms', title: 'Бункер', icon: '🏚️',
+  minPlayers: MIN, needTheme: false, playersTitle: '👥 Игроки и карточки',
+  render: ({ r, list, me, isHost, still }) => renderBunker(r, list, me, isHost, still),
+  start: startBunker,
+  onReset: () => { bodyKey = ''; lastTurn = null; selCard = null; pickIdx = null; },
+  actions: {
+    selCard: (el) => { selCard = selCard === +el.dataset.i ? null : +el.dataset.i; R.render(); },
+    revealSel, vote: voteFor, useAction: openPick, pickTarget, closePick
+  }
+});
+</script>
+</body>
+</html>
