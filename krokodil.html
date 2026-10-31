@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Крокодил — Крокодил Арек</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="strip"></div>
+<button class="btn fab hidden" id="winFab" data-a="win">🏆 Я выиграл</button>
+<div class="bar hidden" id="turnBar">
+  <div class="btn-row">
+    <button class="btn btn-yes" data-a="guessed">✅ Угадал</button>
+    <button class="btn btn-no" data-a="notGuessed">❌ Не угадал</button>
+  </div>
+</div>
+
+<script type="module">
+import { $, esc, P, db, doc, updateDoc, runTransaction, ask, toast, errMsg, confetti, shuffle, placeLabel, initial, avStyle } from './shared.js';
+import { R, initGame, playersSorted, playerCard, openTurnOv } from './room.js';
+
+const MIN = 2, MINTEXT = 'Нужно минимум 2 игрока';
+const WIN_PLACE1 = 5;      // монет за 1 место
+let assigning = false, bodyKey = '', lastTurn = null;
+
+function setBar(on) {
+  $('turnBar').classList.toggle('hidden', !on);
+  document.body.classList.toggle('bar-on', on);
+}
+function showTurn(id, p) {
+  const me = id === P.user.uid;
+  openTurnOv(
+    `<div class="tc-label">${me ? '👉 Твой ход' : 'Ход игрока'}</div>` +
+    `<div class="tc-avatar">${esc(initial(p.name))}</div>` +
+    `<div class="tc-name">${esc(p.name)}</div>` +
+    (me ? `<div class="tc-word secret"><small>Твоё слово</small><b>🙈 Скрыто — угадывай!</b></div>`
+        : `<div class="tc-word"><small>Его слово</small><b>${esc(p.word)}</b></div>`), 3000, me);
+}
+
+/* ===== Игровая логика Крокодила ===== */
+async function startGame() {
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = R.ref(), s = await tx.get(ref), d = s.data();
+      if (d.status !== 'lobby') return;
+      const list = playersSorted(d);
+      if (list.length < MIN) throw new Error(MINTEXT);
+      const upd = { status: 'words', words: {}, order: list.map(p => p.id), turn: null, placeCount: 0, lastEvent: '' };
+      list.forEach(p => { upd['players.' + p.id + '.word'] = null; upd['players.' + p.id + '.place'] = null; });
+      tx.update(ref, upd);
+    });
+  } catch (e) { toast(errMsg(e), 'error'); }
+}
+
+function derange(ids) {
+  for (let t = 0; t < 300; t++) {
+    const p = shuffle(ids.slice());
+    if (p.every((x, i) => x !== ids[i])) return p;
+  }
+  return ids.slice(1).concat(ids[0]);
+}
+
+async function assignWords() {
+  if (assigning) return; assigning = true;
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = R.ref(), s = await tx.get(ref), d = s.data();
+      if (d.status !== 'words') return;
+      const ids = d.order;
+      if (!ids.every(id => d.words && d.words[id])) return;
+      const authors = derange(ids);           // authors[i] — чьё слово достаётся игроку ids[i]
+      const upd = { status: 'playing', turn: ids[Math.floor(Math.random() * ids.length)], lastEvent: 'Игра началась! Задавайте вопросы вживую.' };
+      ids.forEach((id, i) => { upd['players.' + id + '.word'] = d.words[authors[i]]; upd['players.' + id + '.author'] = authors[i]; });
+      tx.update(ref, upd);
+    });
+  } catch (e) { toast(errMsg(e), 'error'); }
+  assigning = false;
+}
+
+async function submitWord() {
+  const w = $('wordInput').value.trim().replace(/\s+/g, ' ');
+  if (!w) return toast('Введи слово', 'error');
+  try { await updateDoc(R.ref(), { ['words.' + P.user.uid]: w }); }
+  catch (e) { toast('Не удалось отправить слово', 'error'); }
+}
+
+function nextActive(order, players, fromId) {
+  const n = order.length, i = order.indexOf(fromId);
+  for (let k = 1; k <= n; k++) {
+    const id = order[(i + k) % n];
+    if (players[id].place == null) return id;
+  }
+  return null;
+}
+
+async function turnAction(kind) {
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = R.ref(), s = await tx.get(ref), d = s.data();
+      if (d.status !== 'playing' || d.turn !== P.user.uid) return;
+      if (kind === 'guessed') {
+        tx.update(ref, { lastEvent: `✅ ${P.name} угадал и задаёт ещё вопрос` });
+      } else {
+        const nxt = nextActive(d.order, d.players, P.user.uid);
+        tx.update(ref, { turn: nxt, lastEvent: `❌ ${P.name} не угадал — ход переходит дальше` });
+      }
+    });
+  } catch (e) { toast(errMsg(e), 'error'); }
+}
+
+async function iWon() {
+  if (!(await ask('Ты точно угадал своё слово?'))) return;
+  let gotBonus = false;
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = R.ref(), s = await tx.get(ref), d = s.data();
+      const uref = doc(db, 'users', P.user.uid), us = await tx.get(uref);
+      if (d.status !== 'playing' || d.players[P.user.uid].place != null) return;
+      const place = (d.placeCount || 0) + 1;
+      if (place === 1) { tx.update(uref, { coins: ((us.data() || {}).coins || 0) + WIN_PLACE1 }); gotBonus = true; }
+      const players = JSON.parse(JSON.stringify(d.players));
+      players[P.user.uid].place = place;
+      const remaining = d.order.filter(id => players[id].place == null);
+      const upd = { ['players.' + P.user.uid + '.place']: place, placeCount: place, lastEvent: `🏆 ${P.name} угадал слово и занял ${place} место!` };
+      if (d.turn === P.user.uid) upd.turn = remaining.length ? nextActive(d.order, players, P.user.uid) : null;
+      if (remaining.length <= 1) {
+        upd.status = 'finished'; upd.turn = null;
+        if (remaining.length === 1) { upd['players.' + remaining[0] + '.place'] = place + 1; upd.placeCount = place + 1; }
+      }
+      tx.update(ref, upd);
+    });
+    confetti();
+    if (gotBonus) toast(`🏆 +${WIN_PLACE1} монет за 1 место!`, 'success');
+  } catch (e) { toast(errMsg(e), 'error'); }
+}
+
+/* ===== Отрисовка ===== */
+function renderCroc({ r, list, me, isHost, prevStatus, body }) {
+  if (r.status !== 'playing') lastTurn = null;
+  if (r.status === 'lobby') {
+    bodyKey = 'lobby';
+    body.innerHTML = `<h3 style="margin:6px 0 10px">Игроки</h3>${list.map((p, i) => playerCard(p, r, { i })).join('')}
+      <p class="muted" style="font-size:13px;text-align:center;margin:10px 0">Отправь друзьям код <b>${esc(r.code)}</b></p>
+      ${isHost ? `<button class="btn" data-a="start" ${list.length < MIN ? 'disabled' : ''}>${list.length < MIN ? MINTEXT : '▶ Начать игру'}</button>
+      <button class="btn btn-soft-red" data-a="closeRoom">Закрыть комнату</button>`
+      : '<p class="muted" style="text-align:center;margin:14px 0">Ждём, пока ведущий начнёт игру…</p>'}
+      <button class="btn btn-soft" data-a="leave">Выйти из комнаты</button>`;
+    return;
+  }
+
+  if (r.status === 'words') {
+    const submitted = !!(r.words && r.words[P.user.uid]);
+    const cnt = list.filter(p => r.words && r.words[p.id]).length;
+    const status = `<h3 style="margin:14px 0 10px">Загадали слово: ${cnt}/${list.length}</h3>` +
+      list.map((p, i) => playerCard(p, r, { i, extra: `<div class="word">${r.words && r.words[p.id] ? '✅ готово' : '⏳ думает…'}</div>` })).join('');
+    const key = 'words-' + submitted;
+    if (bodyKey !== key) {
+      bodyKey = key;
+      body.innerHTML = (submitted
+        ? `<div class="card pop"><h2>Слово отправлено ✅</h2><p class="muted">Ждём остальных игроков…</p></div>`
+        : `<div class="card pop"><h2>Загадай слово</h2><p class="muted" style="font-size:14px;margin-bottom:12px">Слово по теме «${esc(r.theme)}». Оно случайно достанется другому игроку — ты его увидишь, а он нет.</p>
+            <input id="wordInput" maxlength="40" placeholder="Твоё слово" autocomplete="off">
+            <button class="btn btn-teal" data-a="sendWord">Отправить</button></div>`)
+        + '<div id="wordsList"></div>'
+        + (isHost ? '<button class="btn btn-soft" data-a="toLobby">Отменить и вернуться в лобби</button>' : '');
+    }
+    $('wordsList').innerHTML = status;
+    if (isHost && cnt === list.length) assignWords();
+    return;
+  }
+
+  if (r.status === 'playing') {
+    bodyKey = 'playing';
+    const turnP = r.players[r.turn];
+    const myTurn = r.turn === P.user.uid && me.place == null;
+    const sorted = list.slice().sort((a, b) => (r.order.indexOf(a.id)) - (r.order.indexOf(b.id)));
+    if (r.turn && r.turn !== lastTurn) { lastTurn = r.turn; if (turnP) showTurn(r.turn, turnP); }
+
+    const hero = turnP ? `<div class="hero pop ${myTurn ? 'mine' : ''}">
+        <div class="avatar xl" style="${avStyle(turnP.name)}">${esc(initial(turnP.name))}</div>
+        <div class="hero-txt">
+          <span class="hero-label">${myTurn ? '👉 Твой ход!' : 'Сейчас ходит'}</span>
+          <div class="hero-name">${esc(turnP.name)}</div>
+          <div class="hero-word">${r.turn === P.user.uid ? '🙈 Своё слово не видно' : 'Слово: <b>' + esc(turnP.word) + '</b>'}</div>
+        </div></div>` : '';
+
+    body.innerHTML = `${r.lastEvent ? `<div class="event">${esc(r.lastEvent)}</div>` : ''}
+      ${hero}
+      ${me.place != null ? `<div class="event">Ты занял ${placeLabel(me.place)} и теперь наблюдаешь</div>` : ''}
+      <p class="muted" style="text-align:center;font-size:13px;margin-top:10px">Все игроки и их слова — кнопка 👥 слева внизу</p>
+      <div class="mini-row">
+        <button class="btn-mini" data-a="leave">🚪 Выйти</button>
+        ${isHost ? '<button class="btn-mini danger" data-a="finish">Завершить игру</button>' : ''}
+      </div>`;
+    $('playersList').innerHTML = sorted.map(p => playerCard(p, r)).join('');
+    if (me.place == null) $('winFab').classList.remove('hidden');
+    if (myTurn) setBar(true);
+    return;
+  }
+
+  if (r.status === 'finished') {
+    bodyKey = 'finished';
+    if (prevStatus !== 'finished') confetti();
+    const placed = list.filter(p => p.place != null).sort((a, b) => a.place - b.place);
+    const rest = list.filter(p => p.place == null);
+    let i = 0;
+    body.innerHTML = `${r.lastEvent ? `<div class="event">${esc(r.lastEvent)}</div>` : ''}
+      <h2 style="margin:10px 0">🏁 Итоги</h2>
+      ${placed.map(p => playerCard(p, r, { i: i++ })).join('')}
+      ${rest.map(p => playerCard(p, r, { i: i++ })).join('')}
+      ${isHost ? '<button class="btn btn-orange" data-a="toLobby">🔄 Играть снова</button><button class="btn btn-soft-red" data-a="closeRoom">Закрыть комнату</button>'
+      : '<p class="muted" style="text-align:center;margin:14px 0">Ведущий может запустить новую игру</p>'}
+      <button class="btn btn-soft" data-a="leave">Выйти в меню</button>`;
+  }
+}
+
+document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'wordInput') submitWord(); });
+
+initGame({
+  key: 'krokodil', collection: 'krokodil_rooms', title: 'Крокодил', icon: '🐊',
+  minPlayers: MIN, needTheme: true, playersTitle: '👥 Игроки и слова',
+  render: renderCroc, start: startGame,
+  resetRoomUI: () => { $('winFab').classList.add('hidden'); setBar(false); },
+  onReset: () => { assigning = false; bodyKey = ''; lastTurn = null; },
+  actions: { sendWord: submitWord, guessed: () => turnAction('guessed'), notGuessed: () => turnAction('notGuessed'), win: iWon }
+});
+</script>
+</body>
+</html>
