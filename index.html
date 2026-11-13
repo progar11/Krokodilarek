@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Крокодил Арек — онлайн игра для компании</title>
+<meta name="description" content="Крокодил Арек — онлайн игра на GitHub Pages: создайте комнату, позовите друзей по коду и угадывайте слова. От 2 до 10 игроков (Бункер — от 3).">
+<meta name="keywords" content="Крокодил Арек, Крокодил Арек гитхаб, Крокодил гитхаб, Арек гитхаб, крокодил онлайн игра">
+<meta name="application-name" content="Крокодил Арек">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Крокодил Арек">
+<meta property="og:title" content="Крокодил Арек — онлайн игра для компании">
+<meta property="og:description" content="Создай комнату, позови друзей по коду и угадывай слова вживую.">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","name":"Крокодил Арек","alternateName":["Крокодил Арек гитхаб","Крокодил гитхаб","Арек гитхаб"],"inLanguage":"ru"}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+.menu-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;align-items:stretch}
+.menu-row .card{margin-bottom:0;padding:14px 12px}
+.menu-row h3{font-size:15px;line-height:1.2}
+.menu-row .wheel-wrap{width:min(136px,100%);margin:16px auto 4px}
+.menu-row .wheel-hub{width:26px;height:26px;margin:-13px 0 0 -13px;font-size:13px}
+.menu-row .wheel-ptr{border-left-width:8px;border-right-width:8px;border-top-width:16px;top:-8px}
+.menu-row .wheel-res{font-size:13px;min-height:18px;margin:4px 0}
+.menu-row .btn{font-size:13px;padding:10px 6px;margin-top:4px}
+.lb-card{cursor:pointer;display:flex;flex-direction:column;text-align:left;transition:transform .15s;-webkit-tap-highlight-color:transparent}
+.lb-card:active{transform:scale(.97)}
+.lb-row{display:flex;align-items:center;gap:6px;padding:6px 0;font-size:14px;font-weight:700;min-width:0}
+.lb-row+.lb-row{border-top:1px solid var(--border)}
+.lb-row.me{background:var(--primary-light);border-radius:10px;padding-left:6px;padding-right:6px}
+.lb-rk{width:24px;text-align:center;flex:none;font-size:16px}
+.lb-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-co{font-family:var(--font-display);font-weight:800;color:#B8690F;font-size:13px;white-space:nowrap}
+.lb-more{margin-top:auto;padding-top:10px;text-align:center;font-size:13px;font-weight:800;color:var(--blue)}
+.lb-empty{font-size:13px;color:var(--muted);padding:8px 0;line-height:1.35}
+.lb-full{max-height:58vh;overflow-y:auto;margin-bottom:10px;text-align:left}
+.lb-full .lb-row{font-size:16px;padding:8px 0;gap:10px}
+.lb-full .lb-row.me{padding-left:8px;padding-right:8px}
+.lb-full .lb-rk{width:34px;font-size:18px}
+.lb-full .avatar{width:38px;height:38px;font-size:17px}
+.lb-full .lb-co{font-size:15px}
+</style>
+</head>
+<body>
+<div class="strip"></div>
+
+<!-- Вход -->
+<section id="loginScreen" class="container center hidden">
+  <span class="logo">🐊</span>
+  <h1 style="text-align:center">Крокодил Арек</h1>
+  <p class="lead" style="text-align:center">Две игры для компании: «Крокодил» и «Бункер». Создай комнату, позови друзей по коду. От 2 до 10 игроков (Бункер — от 3).</p>
+  <button class="btn btn-blue" id="googleBtn">Войти через Google</button>
+</section>
+
+<!-- Имя -->
+<section id="nameScreen" class="container center hidden">
+  <div class="card">
+    <h2>Как тебя зовут?</h2>
+    <p class="lead" style="margin-bottom:12px">Это имя увидят все игроки.</p>
+    <input id="nameInput" maxlength="20" placeholder="Твоё имя" autocomplete="off">
+    <button class="btn btn-teal" id="saveNameBtn">Сохранить</button>
+    <button class="btn btn-soft hidden" id="cancelNameBtn">Отмена</button>
+  </div>
+</section>
+
+<!-- Меню -->
+<section id="menuScreen" class="container hidden">
+  <div class="card">
+    <div class="hello">
+      <div class="avatar" id="menuAvatar"></div>
+      <div style="flex:1;min-width:0"><h3 id="menuName"></h3><span class="muted" style="font-size:13px" id="menuSub">Твой профиль</span></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><div class="coins" data-coins>🪙 0</div><button class="btn btn-orange btn-sm" data-a="openDonate" style="margin:0;width:auto;padding:6px 12px">➕ Купить монеты</button></div>
+    </div>
+    <button class="btn btn-purple btn-sm" data-a="changeName" style="margin-top:0">✏️ Сменить имя</button>
+    <button class="btn btn-teal btn-sm" data-a="openAvatar">🎭 Аватарка</button>
+  </div>
+  <div class="menu-row">
+    <div class="card wheel-card">
+      <h3>🎡 Колесо фортуны</h3>
+      <span class="muted" style="font-size:12px">раз в 12 часов: 5, 10 или 15 🪙</span>
+      <div class="wheel-wrap"><div class="wheel-ptr"></div><canvas id="wheelCv" width="600" height="600"></canvas><div class="wheel-hub">🪙</div></div>
+      <div class="wheel-res" id="wheelRes"></div>
+      <button class="btn btn-orange" id="wheelBtn" data-a="spinWheel">🎡 Крутить</button>
+    </div>
+    <div class="card lb-card" data-a="openTop" role="button" tabindex="0">
+      <h3>🏆 Лидеры по монетам</h3>
+      <div id="lbMini"><div class="lb-empty">Загрузка…</div></div>
+      <div class="lb-more">Топ-30 ›</div>
+    </div>
+  </div>
+  <h3 style="margin:4px 2px 8px">Выбери игру</h3>
+  <div class="gsel">
+    <button class="gopt" data-a="goto" data-href="krokodil.html" data-k="krokodil" data-ic="🐊" data-n="Крокодил"><span>🐊</span>Крокодил</button>
+    <button class="gopt" data-a="goto" data-href="bunker.html" data-k="bunker" data-ic="🏚️" data-n="Бункер"><span>🏚️</span>Бункер</button>
+    <button class="gopt" data-a="goto" data-href="mafia.html" data-k="mafia" data-ic="🕵️" data-n="Мафия"><span>🕵️</span>Мафия</button>
+  </div>
+  <button class="btn btn-orange" data-a="openShop">🛒 Магазин</button>
+  <button class="btn btn-soft-red" data-a="logout" style="margin-top:18px">Выйти из аккаунта</button>
+</section>
+
+<div class="modal hidden" id="avModal"><div class="box" style="max-width:420px;width:100%">
+  <p style="margin-bottom:4px"><b>🎭 Выбери аватарку</b></p>
+  <div class="agrid" id="avGrid"></div>
+  <label>Или одна буква / символ</label>
+  <input id="avLetter" maxlength="2" placeholder="Например: К" autocomplete="off">
+  <button class="btn btn-teal" data-a="avLetterSave">Поставить букву</button>
+  <button class="btn btn-soft" data-a="avReset">По умолчанию (первая буква ника)</button>
+  <button class="btn btn-slate" data-a="avClose">Закрыть</button>
+</div></div>
+
+<div class="modal hidden" id="topModal"><div class="box" style="max-width:420px;width:100%">
+  <p style="margin-bottom:10px"><b>🏆 Топ-30 по монетам</b></p>
+  <div class="lb-full" id="lbFull"></div>
+  <button class="btn btn-slate" data-a="topClose">Закрыть</button>
+</div></div>
+
+<div class="modal hidden" id="donateModal"><div class="box" style="max-width:380px;width:100%;text-align:center">
+  <p style="margin-bottom:8px"><b>🪙 Купить монеты</b></p>
+  <p style="font-size:15px;line-height:1.45;margin-bottom:10px"><b>Цена монет: 1 сом = 2 монеты.</b><br>Чтобы купить, скиньте деньги сюда:</p>
+  <img src="bank.png" alt="QR-код для оплаты" style="width:100%;max-width:280px;border-radius:14px;background:#fff;margin:0 auto 10px;display:block">
+  <p style="font-size:14px;line-height:1.45;margin-bottom:12px">и отправьте чек с Google-аккаунтом, на который привязан аккаунт на сайте.</p>
+  <p style="font-size:14px;margin-bottom:12px">Писать мне в Telegram: <a href="https://t.me/k1ruzx" target="_blank" rel="noopener" style="color:var(--blue);font-weight:800">@k1ruzx</a></p>
+  <button class="btn btn-slate" data-a="donateClose">Закрыть</button>
+</div></div>
+
+<script type="module">
+import { $, esc, P, db, auth, doc, setDoc, runTransaction, signInWithPopup, GoogleAuthProvider, signOut,
+  startSession, subscribeProfile, onProfile, paintCoins, toast, errMsg, confetti, nameHtml, initial, avStyle, frameImg, avatarHtml, updateDoc, registerActions, openShop,
+  collection, query, orderBy, limitToLast, getDocs } from './shared.js';
+
+const SPIN_COOLDOWN = 12 * 3600 * 1000;
+// 30 ячеек: победные (15 шт: по 5 штук 15/10/5) стоят через одну с «не повезло» (0)
+const WHEEL_VALS = [15, 5, 10, 5, 15, 10, 5, 10, 15, 5, 10, 15, 10, 5, 15];
+const WHEEL = Array.from({ length: 30 }, (_, i) => i % 2 === 0 ? WHEEL_VALS[i / 2] : 0);
+let wheelRot = 0;
+
+function show(id) {
+  ['loginScreen', 'nameScreen', 'menuScreen'].forEach(s => $(s).classList.toggle('hidden', s !== id));
+  window.scrollTo(0, 0);
+}
+function paintMenuName() { $('menuName').innerHTML = nameHtml({ name: P.name, title: P.title }); }
+function paintGameButtons() {
+  document.querySelectorAll('.gopt').forEach(b => {
+    let code = null; try { code = localStorage.getItem(b.dataset.k + '_room'); } catch (e) {}
+    b.innerHTML = `<span>${b.dataset.ic}</span>${b.dataset.n}` + (code ? `<small class="muted" style="display:block;font-size:11px;font-weight:600;margin-top:2px">↩ комната ${esc(code)}</small>` : '');
+  });
+}
+function showMenu() {
+  paintGameButtons(); paintCoins(); paintWheel(); paintMenuName(); loadTop();
+  $('menuAvatar').innerHTML = esc(P.avatar || initial(P.name)) + frameImg(P.frame); $('menuAvatar').style.cssText = avStyle(P.name);
+  show('menuScreen');
+}
+function openNameScreen(canCancel) {
+  $('nameInput').value = P.name || P.user.displayName || '';
+  $('cancelNameBtn').classList.toggle('hidden', !canCancel);
+  show('nameScreen');
+}
+
+/* ===== Вход и имя ===== */
+$('googleBtn').onclick = () => signInWithPopup(auth, new GoogleAuthProvider()).catch(e => toast('Ошибка входа: ' + e.message, 'error'));
+$('saveNameBtn').onclick = async () => {
+  const n = $('nameInput').value.trim().replace(/\s+/g, ' ');
+  if (n.length < 2) return toast('Имя должно быть минимум 2 символа', 'error');
+  try {
+    await setDoc(doc(db, 'users', P.user.uid), { name: n, coins: P.coins }, { merge: true });
+    P.name = n; subscribeProfile(); showMenu();
+  } catch (e) { toast('Не удалось сохранить имя', 'error'); }
+};
+$('cancelNameBtn').onclick = showMenu;
+
+/* ===== КОЛЕСО ФОРТУНЫ ===== */
+function drawWheel() {
+  const cv = $('wheelCv'); if (!cv) return;
+  const c = cv.getContext('2d'), R = 300, n = WHEEL.length, step = Math.PI * 2 / n;
+  const col = { 15: '#F2B233', 10: '#2FA36B', 5: '#4C8BD9', 0: '#D5DDD7' };
+  c.clearRect(0, 0, 600, 600);
+  for (let i = 0; i < n; i++) {
+    const a0 = -Math.PI / 2 + i * step;
+    c.beginPath(); c.moveTo(R, R); c.arc(R, R, R - 3, a0, a0 + step); c.closePath();
+    c.fillStyle = col[WHEEL[i]]; c.fill();
+    c.lineWidth = 2; c.strokeStyle = '#fff'; c.stroke();
+    c.save(); c.translate(R, R); c.rotate(a0 + step / 2);
+    c.textAlign = 'right'; c.textBaseline = 'middle';
+    c.fillStyle = WHEEL[i] ? '#fff' : '#7A8A7F';
+    c.font = '800 ' + (WHEEL[i] ? 30 : 24) + 'px Manrope, sans-serif';
+    c.fillText(WHEEL[i] ? String(WHEEL[i]) : '✕', R - 22, 0);
+    c.restore();
+  }
+}
+const wheelLeft = () => Math.max(0, P.lastSpin + SPIN_COOLDOWN - Date.now());
+function fmtLeft(ms) {
+  const t = Math.ceil(ms / 1000), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = t % 60;
+  return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+}
+function paintWheel() {
+  const b = $('wheelBtn'); if (!b) return;
+  const left = wheelLeft();
+  b.disabled = P.spinning || left > 0;
+  b.textContent = P.spinning ? '🎡 Крутится…' : (left > 0 ? '⏳ ' + fmtLeft(left) : '🎡 Крутить');
+}
+async function spinWheel() {
+  if (P.spinning || wheelLeft() > 0) return;
+  P.spinning = true; paintWheel(); $('wheelRes').textContent = '';
+  let idx = 0, now = 0;
+  try {
+    await runTransaction(db, async (tx) => {
+      const uref = doc(db, 'users', P.user.uid), d = (await tx.get(uref)).data() || {};
+      now = Date.now();
+      if (now - (d.lastSpin || 0) < SPIN_COOLDOWN) { P.lastSpin = d.lastSpin || 0; throw new Error('Колесо уже крутили — приходи позже'); }
+      idx = Math.floor(Math.random() * WHEEL.length);
+      tx.update(uref, { coins: (d.coins || 0) + WHEEL[idx], lastSpin: now });
+    });
+  } catch (e) { P.spinning = false; paintWheel(); toast(errMsg(e), 'error'); return; }
+  P.lastSpin = now;
+  const target = -(idx + 0.5) * (360 / WHEEL.length) + (Math.random() * 8 - 4);
+  wheelRot += 360 * 6 + ((((target - wheelRot) % 360) + 360) % 360);
+  $('wheelCv').style.transform = `rotate(${wheelRot}deg)`;
+  setTimeout(() => {
+    P.spinning = false; paintCoins(); paintWheel();
+    const prize = WHEEL[idx];
+    $('wheelRes').textContent = prize ? `🎉 Выпало +${prize} монет!` : '😢 Не повезло';
+    loadTop(true);
+    if (prize) { confetti(); toast(`🎡 +${prize} монет!`, 'success'); } else toast('🎡 Не повезло, попробуй позже');
+  }, 5200);
+}
+/* ===== ТАБЛИЦА ЛИДЕРОВ ПО МОНЕТАМ ===== */
+// Читаем 30 игроков с наибольшим числом монет (правила Firestore уже разрешают читать users любому вошедшему)
+let topList = null, topAt = 0, topLoading = false, topErr = false;
+const rankOf = (i) => ['🥇', '🥈', '🥉'][i] || String(i + 1);
+async function loadTop(force) {
+  if (topLoading || (!force && topList && Date.now() - topAt < 30000)) return;
+  topLoading = true;
+  try {
+    const snap = await getDocs(query(collection(db, 'users'), orderBy('coins'), limitToLast(30)));
+    topList = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(u => (u.coins || 0) > 0).reverse();
+    topErr = false; topAt = Date.now();
+  } catch (e) { topErr = true; }
+  topLoading = false; paintTop();
+}
+function lbRow(u, i, full) {
+  const me = u.id === P.user.uid ? ' me' : '';
+  return `<div class="lb-row${me}"><span class="lb-rk">${rankOf(i)}</span>${full ? avatarHtml(u) : ''}<span class="lb-nm">${full ? nameHtml(u) : esc(u.name || 'Игрок')}${me && full ? ' <span class="muted" style="font-weight:500">(ты)</span>' : ''}</span><span class="lb-co">🪙 ${u.coins || 0}</span></div>`;
+}
+function paintTop() {
+  const mini = $('lbMini'), full = $('lbFull');
+  const msg = topErr && !topList ? 'Не удалось загрузить таблицу' : !topList ? 'Загрузка…' : !topList.length ? 'Пока никого — покрути колесо и стань первым!' : '';
+  if (mini) mini.innerHTML = msg ? `<div class="lb-empty">${msg}</div>` : topList.slice(0, 5).map((u, i) => lbRow(u, i, false)).join('');
+  if (full) full.innerHTML = msg ? `<div class="lb-empty">${msg}</div>` : topList.map((u, i) => lbRow(u, i, true)).join('');
+}
+drawWheel();
+setInterval(() => { if (!$('menuScreen').classList.contains('hidden')) paintWheel(); }, 1000);
+
+onProfile(() => { paintMenuName(); paintWheel(); $('menuAvatar').innerHTML = esc(P.avatar || initial(P.name)) + frameImg(P.frame); });
+const STICKERS = ['😀','😎','🤩','🥳','😈','👻','💀','🤖','👽','🦊','🐱','🐶','🐼','🐸','🦁','🐯','🐵','🦄','🐲','🦉','🐺','🐙','🦈','🐧','🔥','⚡','🌙','⭐','💎','👑','🎮','🎲','🍕','🍔','🚀','⚽','🎸','🕵️','🔪','💉'];
+async function setAvatar(v) {
+  try { await updateDoc(doc(db, 'users', P.user.uid), { avatar: v }); P.avatar = v; showMenu(); paintAvGrid(); toast('Аватарка сохранена', 'success'); }
+  catch (e) { toast('Не удалось сохранить', 'error'); }
+}
+function paintAvGrid() { $('avGrid').innerHTML = STICKERS.map(e => `<button class="${P.avatar === e ? 'on' : ''}" data-a="avPick" data-e="${e}">${e}</button>`).join(''); }
+registerActions({
+  openDonate: () => $('donateModal').classList.remove('hidden'),
+  donateClose: () => $('donateModal').classList.add('hidden'),
+  openAvatar: () => { paintAvGrid(); $('avLetter').value = ''; $('avModal').classList.remove('hidden'); },
+  avClose: () => $('avModal').classList.add('hidden'),
+  avPick: (el) => setAvatar(el.dataset.e),
+  avReset: () => setAvatar(null),
+  avLetterSave: () => { const ch = [...$('avLetter').value.trim()][0]; if (!ch) return toast('Введи букву', 'error'); setAvatar(ch.toUpperCase()); }
+});
+registerActions({
+  openTop: () => { $('topModal').classList.remove('hidden'); paintTop(); loadTop(true); },
+  topClose: () => $('topModal').classList.add('hidden'),
+  spinWheel,
+  goto: (el) => { location.href = el.dataset.href; },
+  changeName: () => openNameScreen(true),
+  logout: () => signOut(auth)
+});
+startSession({
+  onLoggedOut: () => show('loginScreen'),
+  onNoName: () => openNameScreen(false),
+  onError: () => show('menuScreen'),
+  onReady: showMenu
+});
+</script>
+</body>
+</html>
